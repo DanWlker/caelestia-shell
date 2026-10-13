@@ -253,6 +253,7 @@ StyledRect {
                 spacing: Tokens.spacing.extraSmall
 
                 IconButton {
+                    visible: false // Fork: wf-recorder can't pause
                     shapeMorph: true
                     isRound: true
                     label.animate: true

@@ -15,6 +15,8 @@ Singleton {
     property list<string> startArgs
     property bool needsStop
     property bool needsPause
+    // Fork: wf-recorder via assets/record.sh instead of `caelestia record` (gpu-screen-recorder)
+    readonly property string script: Quickshell.shellPath("assets/record.sh")
 
     function start(extraArgs = []): void {
         needsStart = true;
@@ -46,19 +48,16 @@ Singleton {
         id: checkProc
 
         running: true
-        command: ["pidof", "gpu-screen-recorder"]
+        command: ["pidof", "wf-recorder"]
         onExited: code => { // qmllint disable signal-handler-parameters
             const running = code === 0;
 
             if (running && root.needsStop) {
-                commandProc.exec(["caelestia", "record"]);
+                commandProc.exec([root.script, "stop"]);
                 props.running = false;
                 props.paused = false;
-            } else if (running && root.needsPause) {
-                commandProc.exec(["caelestia", "record", "-p"]);
-                props.paused = !props.paused;
             } else if (!running && root.needsStart) {
-                commandProc.exec(["caelestia", "record", ...root.startArgs]);
+                commandProc.exec([root.script, "start", ...root.startArgs]);
                 props.running = true;
                 props.paused = false;
                 props.elapsed = 0;
@@ -79,7 +78,7 @@ Singleton {
     Process {
         id: commandProc
 
-        // The command owns the transition: `caelestia record` blocks on slurp for
+        // The command owns the transition: record.sh blocks on slurp for
         // region captures, and waits for the recorder to finalise the file when
         // stopping. Reconcile once it has actually finished.
         onExited: checkProc.running = true // qmllint disable signal-handler-parameters

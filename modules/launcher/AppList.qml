@@ -29,10 +29,6 @@ StyledListView {
     function stateForText(text: string): string {
         const prefix = GlobalConfig.launcher.actionPrefix;
         if (text.startsWith(prefix)) {
-            for (const action of ["calc", "scheme", "variant"])
-                if (text.startsWith(`${prefix}${action} `))
-                    return action;
-
             return "actions";
         }
 
@@ -43,12 +39,6 @@ StyledListView {
         switch (stateForText(text)) {
         case "actions":
             return Actions.query(text);
-        case "calc":
-            return [0];
-        case "scheme":
-            return Schemes.query(text);
-        case "variant":
-            return M3Variants.query(text);
         default:
             return Apps.search(text);
         }
@@ -84,11 +74,6 @@ StyledListView {
 
     state: screenState.launcher ? requestedState : displayState
 
-    onStateChanged: {
-        if (state === "scheme" || state === "variant")
-            Schemes.reload();
-    }
-
     Component.onCompleted: displayText = search.text
 
     states: [
@@ -104,27 +89,6 @@ StyledListView {
 
             PropertyChanges {
                 root.delegate: actionItem
-            }
-        },
-        State {
-            name: "calc"
-
-            PropertyChanges {
-                root.delegate: calcItem
-            }
-        },
-        State {
-            name: "scheme"
-
-            PropertyChanges {
-                root.delegate: schemeItem
-            }
-        },
-        State {
-            name: "variant"
-
-            PropertyChanges {
-                root.delegate: variantItem
             }
         }
     ]
@@ -259,30 +223,6 @@ StyledListView {
         id: actionItem
 
         ActionItem {
-            list: root
-        }
-    }
-
-    Component {
-        id: calcItem
-
-        CalcItem {
-            list: root
-        }
-    }
-
-    Component {
-        id: schemeItem
-
-        SchemeItem {
-            list: root
-        }
-    }
-
-    Component {
-        id: variantItem
-
-        VariantItem {
             list: root
         }
     }

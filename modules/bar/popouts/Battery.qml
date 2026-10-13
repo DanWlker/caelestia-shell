@@ -140,6 +140,7 @@ Column {
     StyledRect {
         id: profiles
 
+        visible: false // Fork: no power-profiles-daemon
         property string current: {
             const p = PowerProfiles.profile;
             if (p === PowerProfile.PowerSaver)

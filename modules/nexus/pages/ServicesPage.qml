@@ -187,26 +187,8 @@ PageBase {
             text: Tr.tr("Service tuning")
         }
 
-        StepperRow {
-            first: true
-            // TRANSLATORS: bars of a spectrum analyser, not the taskbar
-            label: Tr.tr("Visualiser bars")
-            subtext: Tr.tr("Number of bars in the audio visualisers")
-            value: GlobalConfig.services.visualiserBars
-            from: 10
-            to: 120
-            stepSize: 2
-            onMoved: v => GlobalConfig.services.visualiserBars = v
-        }
-
-        ToggleRow {
-            text: Tr.tr("Smart colour scheme")
-            subtext: Tr.tr("Derive theme mode and variant from the wallpaper")
-            checked: GlobalConfig.services.smartScheme
-            onToggled: GlobalConfig.services.smartScheme = checked
-        }
-
         SelectRow {
+            first: true
             last: true
             label: Tr.tr("GPU")
             subtext: Gpu.name ? Tr.tr("Monitoring: %1").arg(Gpu.name) : Tr.tr("Override for GPU type")
