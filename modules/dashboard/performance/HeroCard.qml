@@ -17,6 +17,8 @@ StyledRect {
     required property color accent
     required property real usage
     required property real temperature
+    // Fork: the services report 0 when there's no sensor (e.g. Apple Silicon on Asahi exposes no CPU/GPU temps)
+    readonly property bool hasTemperature: temperature > 0
 
     color: Colours.tPalette.m3surfaceContainer
     radius: Tokens.rounding.extraLarge
@@ -95,13 +97,13 @@ StyledRect {
             }
 
             StyledText {
-                text: Units.formatSensorTemp(root.temperature)
+                text: root.hasTemperature ? Units.formatSensorTemp(root.temperature) : Tr.trCtx("N/A", "no temperature sensor")
                 font: Tokens.font.body.builders.medium.build()
             }
         }
 
         StyledProgressBar {
-            value: root.temperature / 100
+            value: root.hasTemperature ? root.temperature / 100 : 0
             implicitHeight: Tokens.padding.small
             fgColour: root.accent
             indeterminate: isNaN(root.usage) || isNaN(root.temperature)

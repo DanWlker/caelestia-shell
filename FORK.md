@@ -25,6 +25,8 @@ original repo; merge from it to update.
 - **Brightness**: monitors without DDC (all external monitors on Asahi) are not controllable
   (`Brightness.Monitor.controllable`): no OSD brightness slider, no bar-scroll/IPC changes. Upstream falls
   back to brightnessctl for them, which changes the laptop panel instead.
+- **Temperatures**: a reading of 0 (the services' value when there's no sensor) shows "N/A" on the performance
+  cards and lock screen. Asahi exposes no CPU/GPU die temperature, and the CPU service only knows Intel/AMD labels.
 
 ## Build
 
