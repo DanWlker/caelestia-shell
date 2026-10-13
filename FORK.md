@@ -22,6 +22,9 @@ original repo; merge from it to update.
   - power-profiles-daemon: profile switcher and "performance degraded" warning in the battery pop-out
   - caelestia CLI: CLI version row (About), "Smart colour scheme" toggle (Services), "Dark theme" toggle
     and "Colours" button (Wallpaper & style), "Schemes"/"Variants" fuzzy-search toggles (Launcher)
+- **Brightness**: monitors without DDC (all external monitors on Asahi) are not controllable
+  (`Brightness.Monitor.controllable`): no OSD brightness slider, no bar-scroll/IPC changes. Upstream falls
+  back to brightnessctl for them, which changes the laptop panel instead.
 
 ## Build
 
