@@ -12,15 +12,12 @@ Searcher {
     id: root
 
     readonly property string currentNamePath: `${Paths.state}/wallpaper/path.txt`
-    readonly property list<string> smartArg: GlobalConfig.services.smartScheme ? [] : ["--no-smart"]
     readonly property string fallback: Quickshell.shellPath("assets/wallpaper.webp")
 
     property bool showPreview: false
     readonly property string current: showPreview ? previewPath : actualCurrent
     property string previewPath
     property string actualCurrent
-    property bool previewColourLock
-    property bool pendingPreviewClear
 
     function getCategoryFor(w: FileSystemEntry): string {
         let category = w.parentDir.slice(Paths.wallsdir.length + 1);
@@ -29,34 +26,25 @@ Searcher {
         return category;
     }
 
+    // Fork: no caelestia CLI, so the shell stores the current wallpaper itself (no scheme generation)
     function setRandom(): void {
-        Quickshell.execDetached(["caelestia", "wallpaper", "-r", ...smartArg]);
+        const others = wallpapers.entries.filter(w => w.path !== actualCurrent);
+        if (others.length > 0)
+            setWallpaper(others[Math.floor(Math.random() * others.length)].path);
     }
 
     function setWallpaper(path: string): void {
         actualCurrent = path;
-        Quickshell.execDetached(["caelestia", "wallpaper", "-f", path, ...smartArg]);
+        currentFile.setText(path);
     }
 
     function preview(path: string): void {
         previewPath = path;
         showPreview = true;
-
-        if (Colours.scheme === "dynamic")
-            getPreviewColoursProc.running = true;
     }
 
     function stopPreview(): void {
         showPreview = false;
-        if (previewColourLock)
-            pendingPreviewClear = true;
-        else
-            Colours.showPreview = false;
-    }
-
-    onPreviewColourLockChanged: {
-        if (!previewColourLock && pendingPreviewClear)
-            Colours.showPreview = false;
     }
 
     list: wallpapers.entries
@@ -79,28 +67,22 @@ Searcher {
             return root.list.map(w => w.path).join("\n");
         }
 
+        function random(): void {
+            root.setRandom();
+        }
+
         target: "wallpaper"
     }
 
     FileView {
+        id: currentFile
+
         path: root.currentNamePath
         watchChanges: true
         printErrors: false
         onFileChanged: reload()
-        onLoaded: {
-            let wall = text().trim();
-            if (!wall) {
-                wall = root.fallback;
-                Quickshell.execDetached(["caelestia", "wallpaper", "-f", root.fallback, ...root.smartArg]);
-            }
-            root.actualCurrent = wall;
-            root.previewColourLock = false;
-        }
-        onLoadFailed: {
-            root.actualCurrent = root.fallback;
-            root.previewColourLock = false;
-            Quickshell.execDetached(["caelestia", "wallpaper", "-f", root.fallback, ...root.smartArg]);
-        }
+        onLoaded: root.actualCurrent = text().trim() || root.fallback
+        onLoadFailed: root.actualCurrent = root.fallback
     }
 
     FileSystemModel {
@@ -109,17 +91,5 @@ Searcher {
         recursive: true
         path: Paths.wallsdir
         filter: FileSystemModel.Images | FileSystemModel.Videos
-    }
-
-    Process {
-        id: getPreviewColoursProc
-
-        command: ["caelestia", "wallpaper", "-p", root.previewPath, ...root.smartArg]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                Colours.load(text, true);
-                Colours.showPreview = true;
-            }
-        }
     }
 }

@@ -73,7 +73,7 @@ QtObject {
         {
             label: Tr.tr("Services"),
             icon: "build",
-            description: Tr.tr("Poll intervals, lyrics backend"),
+            description: Tr.tr("Poll intervals, default player"),
             category: "shell"
         },
         {

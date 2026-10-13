@@ -170,6 +170,9 @@ Singleton {
         readonly property bool isDdc: ddcInfo !== null
         readonly property string busNum: ddcInfo?.busNum ?? ""
         readonly property bool isAppleDisplay: root.appleDisplayPresent && modelData.model.startsWith("StudioDisplay")
+        // Fork: Asahi exposes no DDC for external monitors, which would otherwise fall back to
+        // brightnessctl and control the laptop panel. Only DDC, Studio Display and built-in (eDP) panels work.
+        readonly property bool controllable: isDdc || isAppleDisplay || modelData.name.startsWith("eDP")
         property real brightness
         property real queuedBrightness: NaN
 
@@ -198,6 +201,8 @@ Singleton {
         }
 
         function setBrightness(value: real): void {
+            if (!controllable)
+                return;
             value = Math.max(0, Math.min(1, value));
             const rounded = Math.round(value * 100);
             if (Math.round(brightness * 100) === rounded)
@@ -222,6 +227,8 @@ Singleton {
         }
 
         function initBrightness(): void {
+            if (!controllable)
+                return;
             if (isAppleDisplay)
                 initProc.command = ["asdbctl", "get"];
             else if (isDdc)

@@ -26,12 +26,36 @@ StyledListView {
             displayText = search.text;
     }
 
+    property string highlightedScheme // "name flavour" of the highlighted >scheme row
+    property string lastResultsText
+
+    // Fork: preview the highlighted scheme while browsing >scheme; the applied one comes back on leaving
+    function updateSchemePreview(): void {
+        const scheme = (currentItem as SchemeItem)?.modelData;
+        if (screenState.launcher && state === "scheme" && scheme?.colours) {
+            highlightedScheme = `${scheme.name} ${scheme.flavour}`;
+            Schemes.preview(scheme);
+        } else {
+            Schemes.stopPreview();
+        }
+    }
+
+    // Fork: in >scheme, a new search starts at the top, no search starts on the applied scheme (so the preview
+    // starts unchanged), and a reload of the list (scheme files changed) keeps the highlighted scheme
+    function indexForResults(values: var): int {
+        const sameSearch = displayText === lastResultsText;
+        lastResultsText = displayText;
+        if (displayState !== "scheme")
+            return 0;
+        const key = sameSearch ? highlightedScheme : Schemes.transformSearch(displayText).trim() ? "" : Schemes.currentScheme;
+        return key ? Math.max(0, values.findIndex(s => `${s.name} ${s.flavour}` === key)) : 0;
+    }
+
     function stateForText(text: string): string {
         const prefix = GlobalConfig.launcher.actionPrefix;
         if (text.startsWith(prefix)) {
-            for (const action of ["calc", "scheme", "variant"])
-                if (text.startsWith(`${prefix}${action} `))
-                    return action;
+            if (text.startsWith(`${prefix}scheme `))
+                return "scheme";
 
             return "actions";
         }
@@ -43,12 +67,8 @@ StyledListView {
         switch (stateForText(text)) {
         case "actions":
             return Actions.query(text);
-        case "calc":
-            return [0];
         case "scheme":
             return Schemes.query(text);
-        case "variant":
-            return M3Variants.query(text);
         default:
             return Apps.search(text);
         }
@@ -56,7 +76,7 @@ StyledListView {
 
     model: ScriptModel {
         values: root.resultsForText(root.displayText)
-        onValuesChanged: root.currentIndex = 0
+        onValuesChanged: root.currentIndex = root.indexForResults(values)
     }
 
     spacing: Tokens.spacing.small
@@ -83,13 +103,11 @@ StyledListView {
     }
 
     state: screenState.launcher ? requestedState : displayState
-
-    onStateChanged: {
-        if (state === "scheme" || state === "variant")
-            Schemes.reload();
-    }
+    onStateChanged: updateSchemePreview()
+    onCurrentItemChanged: updateSchemePreview()
 
     Component.onCompleted: displayText = search.text
+    Component.onDestruction: Schemes.stopPreview()
 
     states: [
         State {
@@ -107,24 +125,10 @@ StyledListView {
             }
         },
         State {
-            name: "calc"
-
-            PropertyChanges {
-                root.delegate: calcItem
-            }
-        },
-        State {
             name: "scheme"
 
             PropertyChanges {
                 root.delegate: schemeItem
-            }
-        },
-        State {
-            name: "variant"
-
-            PropertyChanges {
-                root.delegate: variantItem
             }
         }
     ]
@@ -264,25 +268,9 @@ StyledListView {
     }
 
     Component {
-        id: calcItem
-
-        CalcItem {
-            list: root
-        }
-    }
-
-    Component {
         id: schemeItem
 
         SchemeItem {
-            list: root
-        }
-    }
-
-    Component {
-        id: variantItem
-
-        VariantItem {
             list: root
         }
     }
@@ -295,9 +283,20 @@ StyledListView {
         target: root.search
     }
 
+    // The highlighted scheme's file changed: show the new colours
+    Connections {
+        function onDataChanged(): void {
+            root.updateSchemePreview();
+        }
+
+        target: (root.currentItem as SchemeItem)?.modelData ?? null
+        ignoreUnknownSignals: true
+    }
+
     Connections {
         function onLauncherChanged() {
             root.syncDisplayText();
+            root.updateSchemePreview();
         }
 
         target: root.screenState

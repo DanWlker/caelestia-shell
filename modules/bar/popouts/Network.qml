@@ -54,11 +54,9 @@ ColumnLayout {
     Repeater {
         visible: root.view === "wireless"
         model: ScriptModel {
-            values: [...Nmcli.networks].sort((a, b) => {
-                if (a.active !== b.active)
-                    return b.active - a.active;
-                return b.strength - a.strength;
-            }).slice(0, 8)
+            // Fork: Nmcli.sortedNetworks (sorted once per refresh) instead of a live sort binding over every access
+            // point. Same order as the settings list: connected, connecting, saved, then signal strength.
+            values: [...Nmcli.sortedNetworks].slice(0, 8)
         }
 
         RowLayout {
@@ -139,7 +137,7 @@ ColumnLayout {
                                 root.passwordNetwork = network;
                                 root.showPasswordDialog = true;
                                 root.popouts.currentName = "wirelesspassword";
-                            });
+                            }, () => root.connectingToSsid = ""); // Fork: failed, stop the spinner
 
                             // Clear connecting state if connection succeeds immediately (saved profile)
                             // This is handled by the onActiveChanged connection below
@@ -370,6 +368,8 @@ ColumnLayout {
             if (root.popouts.currentName !== "wirelesspassword" && root.showPasswordDialog) {
                 root.showPasswordDialog = false;
                 root.passwordNetwork = null;
+                // Fork: also stop the spinner (cancelled, or connected, which clears it anyway)
+                root.connectingToSsid = "";
             }
         }
 

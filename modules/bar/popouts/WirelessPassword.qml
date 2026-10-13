@@ -59,6 +59,7 @@ ColumnLayout {
 
         isClosing = true;
         passwordContainer.passwordBuffer = "";
+        passwordContainer.showPassword = false;
         connectButton.connecting = false;
         connectButton.hasError = false;
         connectButton.text = Tr.tr("Connect");
@@ -262,6 +263,7 @@ ColumnLayout {
                 id: passwordContainer
 
                 property string passwordBuffer: ""
+                property bool showPassword // Fork: eye toggle
 
                 objectName: "passwordContainer"
                 Layout.topMargin: Tokens.spacing.largeIncreased
@@ -372,6 +374,41 @@ ColumnLayout {
                     onClicked: passwordContainer.forceActiveFocus()
                 }
 
+                // Fork: show the typed password as text (eye button on the right)
+                StyledText {
+                    anchors.left: parent.left
+                    anchors.right: revealBtn.left
+                    anchors.leftMargin: Tokens.padding.large
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: passwordContainer.showPassword
+                    text: passwordContainer.passwordBuffer
+                    font: Tokens.font.mono.medium
+                    horizontalAlignment: Text.AlignHCenter
+                    elide: Text.ElideLeft
+                }
+
+                MaterialIcon {
+                    id: revealBtn
+
+                    anchors.right: parent.right
+                    anchors.rightMargin: Tokens.padding.medium
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: passwordContainer.showPassword ? "visibility_off" : "visibility"
+                    color: Colours.palette.m3onSurfaceVariant
+
+                    StateLayer {
+                        anchors.fill: undefined
+                        anchors.centerIn: parent
+                        implicitWidth: parent.implicitWidth + Tokens.padding.small * 2
+                        implicitHeight: implicitWidth
+                        radius: Tokens.rounding.full
+                        onClicked: {
+                            passwordContainer.showPassword = !passwordContainer.showPassword;
+                            passwordContainer.forceActiveFocus();
+                        }
+                    }
+                }
+
                 StyledText {
                     id: placeholder
 
@@ -391,6 +428,7 @@ ColumnLayout {
                 ListView {
                     id: charList
 
+                    visible: !passwordContainer.showPassword
                     readonly property int fullWidth: count * (implicitHeight + spacing) - spacing
 
                     anchors.centerIn: parent
@@ -519,9 +557,16 @@ ColumnLayout {
 
                         // Connect to network
                         NetworkConnection.connectWithPassword(root.network, password, result => {
-                            if (result && result.success)
-                            // Connection successful, monitor will handle the rest
-                            {} else if (result && result.needsPassword) {
+                            if (result && result.success) {
+                                // Fork: nmcli reports the network connected. The shell's network list catches up a
+                                // few seconds later; upstream waited for the list, and its 10 s watchdog said
+                                // "failed" when the list lagged. Finish now and refresh the list.
+                                connectionMonitor.stop();
+                                connecting = false;
+                                text = Tr.tr("Connect");
+                                Nmcli.getNetworks(() => {});
+                                root.closeDialog();
+                            } else if (result && result.needsPassword) {
                                 // Shouldn't happen since we provided password
                                 connectionMonitor.stop();
                                 connecting = false;

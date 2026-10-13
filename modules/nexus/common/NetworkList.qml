@@ -17,6 +17,7 @@ ItemList {
     required property NexusState nState
     property int limit: 0 // 0 = show all
     property bool enableFilter
+    property string filterText // Fork: only networks whose name contains this (case-insensitive)
 
     signal networkSelected(ap: Nmcli.AccessPoint)
 
@@ -31,14 +32,13 @@ ItemList {
     list.anchors.top: scanningIndicator.bottom
 
     model: ScriptModel {
+        // Fork: Nmcli.sortedNetworks is sorted once per refresh (see there); only search, limit and filters here
         values: {
-            const connecting = Nmcli.connectingSsid();
-            // Lower rank sorts higher in the list
-            const rank = n => n.active ? 0 : n.ssid === connecting ? 1 : Nmcli.hasSavedProfile(n.ssid) ? 2 : 3;
-            const sorted = [...Nmcli.networks].sort((a, b) => rank(a) - rank(b) || b.strength - a.strength);
-            if (root.limit > 0 && sorted.length > root.limit)
-                sorted.length = root.limit;
-            return root.enableFilter ? sorted.filter(root.networkFilter) : sorted;
+            const search = root.filterText.trim().toLowerCase();
+            const list = [...Nmcli.sortedNetworks].filter(n => !search || n.ssid.toLowerCase().includes(search));
+            if (root.limit > 0 && list.length > root.limit)
+                list.length = root.limit;
+            return root.enableFilter ? list.filter(root.networkFilter) : list;
         }
     }
 
@@ -62,9 +62,16 @@ ItemList {
 
         onClicked: {
             if (!modelData.active) {
-                NetworkConnection.handleConnect(modelData);
+                // Fork: upstream had no password prompt here and waited forever. A network that needs a password
+                // opens the Add network page pre-filled with it; any other failure re-enables the row.
+                // Greyed while connecting; set before connecting, since the password prompt can open immediately.
                 currentSelected = true;
                 root.networkSelected(modelData);
+                NetworkConnection.handleConnect(modelData, null, ap => {
+                    network.currentSelected = false;
+                    root.nState.connectSsid = ap.ssid;
+                    root.nState.openSubPage(2); // Add network sub-page
+                }, () => network.currentSelected = false);
             } else {
                 // Active network: open its detail/settings sub-page.
                 root.nState.selectedNetworkSsid = modelData.ssid;
