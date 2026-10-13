@@ -16,10 +16,12 @@ original repo; merge from it to update.
 - **Wallpapers**: `services/Wallpapers.qml` stores the current wallpaper in
   `~/.local/state/caelestia/wallpaper/path.txt` itself, with no scheme generation. Added IPC
   `wallpaper random`; the launcher's Random and Settings actions use `qs -c caelestia ipc call`.
-- **Recording**: `assets/record.sh` uses `wf-recorder` instead of gpu-screen-recorder. No pause, so the
-  pause button is hidden.
-- **Hidden**: power-profile switcher in the battery pop-out (no power-profiles-daemon), the CLI version
-  row on the About page.
+- **Recording**: `assets/record.sh` uses `wf-recorder` instead of gpu-screen-recorder. wf-recorder can't
+  pause, so the pause button is removed.
+- **Removed widgets** for dependencies that aren't installed (widgets only, their sections stay):
+  - power-profiles-daemon: profile switcher and "performance degraded" warning in the battery pop-out
+  - caelestia CLI: CLI version row (About), "Smart colour scheme" toggle (Services), "Dark theme" toggle
+    and "Colours" button (Wallpaper & style), "Schemes"/"Variants" fuzzy-search toggles (Launcher)
 
 ## Build
 

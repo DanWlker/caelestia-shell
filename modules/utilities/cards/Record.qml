@@ -253,30 +253,6 @@ StyledRect {
                 spacing: Tokens.spacing.extraSmall
 
                 IconButton {
-                    visible: false // Fork: wf-recorder can't pause
-                    shapeMorph: true
-                    isRound: true
-                    label.animate: true
-                    icon: Recorder.paused ? "play_arrow" : "pause"
-                    isToggle: true
-                    checked: Recorder.paused
-                    type: IconButton.Tonal
-                    font: Tokens.font.icon.medium
-                    onClicked: {
-                        Recorder.togglePause();
-                        internalChecked = Recorder.paused;
-                    }
-
-                    implicitWidth: {
-                        // Ensure even size so icon is centered properly
-                        const h = label.implicitHeight + Tokens.padding.large * 2;
-                        if (h % 2 !== 0)
-                            return h + 1;
-                        return h;
-                    }
-                }
-
-                IconButton {
                     shapeMorph: true
                     isRound: true
                     icon: "stop"

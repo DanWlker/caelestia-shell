@@ -157,18 +157,6 @@ PageBase {
                 disabled: !Config.background.wallpaperEnabled
                 onClicked: root.nState.openSubPage(1) // Wallpaper page
             }
-
-            IconTextButton {
-                icon: "palette"
-                text: Tr.tr("Colours")
-                font: Tokens.font.body.large
-                isRound: true
-                shapeMorph: true
-                type: IconTextButton.Tonal
-                horizontalPadding: Tokens.padding.extraLarge
-                verticalPadding: Tokens.padding.medium
-                onClicked: root.nState.openSubPage(3) // Colours page
-            }
         }
 
         ToggleRow {
