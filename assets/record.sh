@@ -21,7 +21,9 @@ start() {
 
 	local args=()
 	if [ -n "$region" ]; then
-		geometry=$(slurp) || exit 0 # cancelled
+		# </dev/null: slurp reads predefined boxes from stdin when it isn't a terminal,
+		# and the shell's Process gives it a pipe that never closes
+		geometry=$(slurp </dev/null) || exit 0 # cancelled
 		args+=(-g "$geometry")
 	else
 		# Focused monitor, from "workspace ID 1 (1) on monitor DP-1:"
