@@ -8,7 +8,6 @@ qml_module(caelestia-components
         circularindicatormanager.cpp
         linearindicatormanager.cpp
         sparklineitem.cpp
-        visualiserbars.cpp
         roundedmask.cpp
     LIBRARIES
         Qt::Gui

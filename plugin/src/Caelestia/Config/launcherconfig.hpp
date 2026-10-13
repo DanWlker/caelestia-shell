@@ -55,12 +55,6 @@ class LauncherConfig : public settings::ObjectNode {
     CONFIG_GLOBAL_LIST(LauncherActionList, actions,
         DEFAULT_ARG({
             vmap({
-                { u"name"_s, markCtx(u"Calculator"_s, u"launcher action"_s) },
-                { u"icon"_s, u"calculate"_s },
-                { u"description"_s, mark(u"Do simple maths equations (powered by Qalc)"_s) },
-                { u"command"_s, QStringList{ u"autocomplete"_s, u"calc"_s } },
-            }),
-            vmap({
                 { u"name"_s, markCtx(u"Scheme"_s, u"launcher action"_s) },
                 { u"icon"_s, u"palette"_s },
                 { u"description"_s, mark(u"Change the current colour scheme"_s) },
@@ -73,28 +67,10 @@ class LauncherConfig : public settings::ObjectNode {
                 { u"command"_s, QStringList{ u"autocomplete"_s, u"wallpaper"_s } },
             }),
             vmap({
-                { u"name"_s, markCtx(u"Variant"_s, u"launcher action"_s) },
-                { u"icon"_s, u"colors"_s },
-                { u"description"_s, mark(u"Change the current scheme variant"_s) },
-                { u"command"_s, QStringList{ u"autocomplete"_s, u"variant"_s } },
-            }),
-            vmap({
                 { u"name"_s, markCtx(u"Random"_s, u"launcher action"_s) },
                 { u"icon"_s, u"casino"_s },
                 { u"description"_s, mark(u"Switch to a random wallpaper"_s) },
-                { u"command"_s, QStringList{ u"caelestia"_s, u"wallpaper"_s, u"-r"_s } },
-            }),
-            vmap({
-                { u"name"_s, markCtx(u"Light"_s, u"launcher action"_s) },
-                { u"icon"_s, u"light_mode"_s },
-                { u"description"_s, mark(u"Change the scheme to light mode"_s) },
-                { u"command"_s, QStringList{ u"setMode"_s, u"light"_s } },
-            }),
-            vmap({
-                { u"name"_s, markCtx(u"Dark"_s, u"launcher action"_s) },
-                { u"icon"_s, u"dark_mode"_s },
-                { u"description"_s, mark(u"Change the scheme to dark mode"_s) },
-                { u"command"_s, QStringList{ u"setMode"_s, u"dark"_s } },
+                { u"command"_s, QStringList{ u"qs"_s, u"-c"_s, u"caelestia"_s, u"ipc"_s, u"call"_s, u"wallpaper"_s, u"random"_s } },
             }),
             vmap({
                 { u"name"_s, markCtx(u"Shutdown"_s, u"launcher action"_s) },
@@ -133,7 +109,7 @@ class LauncherConfig : public settings::ObjectNode {
                 { u"name"_s, markCtx(u"Settings"_s, u"launcher action"_s) },
                 { u"icon"_s, u"settings"_s },
                 { u"description"_s, mark(u"Configure the shell"_s) },
-                { u"command"_s, QStringList{ u"caelestia"_s, u"shell"_s, u"nexus"_s, u"open"_s } },
+                { u"command"_s, QStringList{ u"qs"_s, u"-c"_s, u"caelestia"_s, u"ipc"_s, u"call"_s, u"nexus"_s, u"open"_s } },
             }),
         }))
 };

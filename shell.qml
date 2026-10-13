@@ -12,6 +12,7 @@ import qs.modules.areapicker
 import qs.modules.background
 import qs.modules.drawers
 import qs.modules.lock
+import qs.modules.polkit
 import qs.daemons
 
 ShellRoot {
@@ -24,6 +25,7 @@ ShellRoot {
         Notifs;
         Players;
         Brightness;
+        Schemes;
         Weather.reload();
 
         if (GlobalConfig.utilities.vpn.enabled)
@@ -44,6 +46,7 @@ ShellRoot {
     Background {}
     Drawers {}
     AreaPicker {}
+    Polkit {} // Fork: polkit agent (replaces hyprpolkitagent)
     Lock {
         id: lock
     }

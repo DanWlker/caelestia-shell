@@ -81,7 +81,7 @@ Item {
 
         // Brightness
         WrappedLoader {
-            shouldBeActive: Config.osd.enableBrightness
+            shouldBeActive: Config.osd.enableBrightness && (root.monitor?.controllable ?? false)
 
             sourceComponent: CustomMouseArea {
                 function onWheel(event: WheelEvent) {

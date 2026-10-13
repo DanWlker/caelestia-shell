@@ -28,9 +28,6 @@ Singleton {
     readonly property bool sourceMuted: !!source?.audio?.muted
     readonly property real sourceVolume: source?.audio?.volume ?? 0
 
-    readonly property alias cava: cava
-    readonly property alias beatTracker: beatTracker
-
     function setVolume(newVolume: real): void {
         if (sink?.ready && sink?.audio) {
             sink.audio.muted = false;
@@ -171,16 +168,6 @@ Singleton {
     // momentarily lag behind the default node.
     PwObjectTracker {
         objects: [root.sink, root.source, ...root.sinks, ...root.sources, ...root.streams].filter(n => n)
-    }
-
-    CavaProvider {
-        id: cava
-
-        bars: GlobalConfig.services.visualiserBars
-    }
-
-    BeatTracker {
-        id: beatTracker
     }
 
     IpcHandler {

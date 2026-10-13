@@ -16,6 +16,7 @@ PageBase {
 
     // Security model: index 0 = none, 1 = WPA/WPA2/WPA3 personal.
     readonly property bool secured: securitySelect.active !== noneItem
+    property bool prefilled // Fork: opened for a known network that needs a password
     property bool connecting: false
     property bool failed: false
     property bool success: false
@@ -51,8 +52,18 @@ PageBase {
         });
     }
 
-    title: Tr.tr("Add network")
+    title: prefilled ? Tr.tr("Connect to network") : Tr.tr("Add network")
     isSubPage: true
+
+    Component.onCompleted: {
+        if (!nState.connectSsid)
+            return;
+        prefilled = true;
+        ssidField.text = nState.connectSsid;
+        hiddenToggle.checked = false;
+        nState.connectSsid = "";
+        passwordField.forceActiveFocus();
+    }
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
@@ -174,10 +185,18 @@ PageBase {
                 anchors.left: parent.left
                 anchors.right: parent.right
 
+                property bool showPassword // Fork: eye toggle (the trailing icon)
+
                 enabled: root.secured
                 placeholderText: Tr.tr("Password")
                 leadingIcon: "key"
-                echoMode: TextInput.Password
+                trailingIcon: showPassword ? "visibility_off" : "visibility"
+                trailingIconInteractive: true
+                echoMode: showPassword ? TextInput.Normal : TextInput.Password
+                onTrailingIconClicked: {
+                    showPassword = !showPassword;
+                    forceActiveFocus();
+                }
                 // TRANSLATORS: WPA is a protocol name, leave it untranslated
                 supportingText: Tr.tr("WPA passwords are at least 8 characters")
                 errorText: root.failed ? Tr.tr("Connection failed — check the password") : Tr.tr("Password must be at least 8 characters")

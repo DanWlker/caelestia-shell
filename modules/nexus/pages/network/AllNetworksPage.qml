@@ -30,6 +30,31 @@ PageBase {
             onTriggered: Nmcli.rescanWifi()
         }
 
+        // Fork: search networks by name
+        StyledTextField {
+            id: searchField
+
+            Layout.fillWidth: true
+            Layout.bottomMargin: Tokens.spacing.medium
+            placeholderText: Tr.tr("Search networks")
+            leadingIcon: "search"
+            trailingIcon: text ? "close" : ""
+            trailingIconInteractive: true
+            inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
+            onTrailingIconClicked: {
+                text = "";
+                forceActiveFocus();
+            }
+            Keys.onEscapePressed: event => {
+                if (text) {
+                    text = "";
+                    event.accepted = true;
+                } else {
+                    event.accepted = false;
+                }
+            }
+        }
+
         ConnectedRect {
             Layout.fillWidth: true
             implicitHeight: headerLayout.implicitHeight + Tokens.padding.medium * 2
@@ -135,6 +160,7 @@ PageBase {
 
             nState: root.nState
             enableFilter: true
+            filterText: searchField.text
             last: true
         }
     }

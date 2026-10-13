@@ -39,10 +39,6 @@ Item {
         onTriggered: Players.active?.positionChanged()
     }
 
-    ServiceRef {
-        service: Audio.beatTracker
-    }
-
     CircularProgress {
         id: prog
 
@@ -159,23 +155,5 @@ Item {
             disabled: !Players.active?.canGoNext
             onClicked: Players.active?.next()
         }
-    }
-
-    AnimatedImage {
-        id: bongocat
-
-        anchors.top: controls.bottom
-        anchors.bottom: parent.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.topMargin: Tokens.spacing.small
-        anchors.bottomMargin: Tokens.padding.large
-        anchors.margins: Tokens.padding.extraLargeIncreased
-
-        playing: Players.active?.isPlaying ?? false
-        speed: Audio.beatTracker.bpm / Config.general.mediaGifSpeedAdjustment
-        source: Paths.absolutePath(Config.paths.mediaGif)
-        asynchronous: true
-        fillMode: AnimatedImage.PreserveAspectFit
     }
 }

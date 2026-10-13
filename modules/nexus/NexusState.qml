@@ -15,6 +15,7 @@ QtObject {
     property DesktopEntry selectedApp
     property int editingVpnIndex: -1
     property string selectedNetworkSsid
+    property string connectSsid // Fork: network the Add network page opens pre-filled with (password needed)
     property string selectedEthernetInterface
     property bool networkDetailsFromSaved
 

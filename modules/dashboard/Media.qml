@@ -12,7 +12,7 @@ Item {
 
     required property ScreenState screenState
 
-    implicitWidth: Tokens.sizes.dashboard.mediaTabWidth
+    implicitWidth: Tokens.sizes.dashboard.mediaTabWidth - Tokens.sizes.dashboard.mediaSectionWidth - Tokens.spacing.extraLarge
     implicitHeight: Tokens.sizes.dashboard.mediaTabHeight
 
     BackgroundShapes {
@@ -134,16 +134,19 @@ Item {
                 asynchronous: true
                 active: opacity > 0
 
+                // Fork: lyrics panel removed, its player switcher sits under the controls
                 sourceComponent: RowLayout {
-                    spacing: Tokens.spacing.extraLarge
-
-                    Details {
+                    ColumnLayout {
                         Layout.fillWidth: true
-                    }
+                        spacing: Tokens.spacing.extraLarge
 
-                    LyricsAndSelector {
-                        Layout.fillHeight: true
-                        implicitWidth: Tokens.sizes.dashboard.mediaSectionWidth
+                        Details {
+                            Layout.fillWidth: true
+                        }
+
+                        PlayerSelector {
+                            Layout.alignment: Qt.AlignHCenter
+                        }
                     }
                 }
             }

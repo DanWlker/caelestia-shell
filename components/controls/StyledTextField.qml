@@ -26,6 +26,8 @@ TextFieldBase {
 
     property string leadingIcon
     property string trailingIcon
+    property bool trailingIconInteractive // Fork: the trailing icon is a button (trailingIconClicked)
+    signal trailingIconClicked
     readonly property int leadingOffset: leadingIcon ? leadingIconLoader.width + leadingIconLoader.anchors.leftMargin : 0
     readonly property int trailingOffset: trailingIcon ? trailingIconLoader.width + trailingIconLoader.anchors.rightMargin : 0
 
@@ -170,6 +172,14 @@ TextFieldBase {
                 text: root.trailingIcon
                 color: Colours.palette.m3onSurfaceVariant
                 fontStyle: Tokens.font.icon.builders.medium.scale(0.9).build()
+
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -Tokens.padding.small
+                    enabled: root.trailingIconInteractive
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.trailingIconClicked()
+                }
             }
         }
     }
