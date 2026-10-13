@@ -27,6 +27,8 @@ original repo; merge from it to update.
   back to brightnessctl for them, which changes the laptop panel instead.
 - **Temperatures**: a reading of 0 (the services' value when there's no sensor) shows "N/A" on the performance
   cards and lock screen. Asahi exposes no CPU/GPU die temperature, and the CPU service only knows Intel/AMD labels.
+- **Session menu**: the GIF between the buttons is hidden when `paths.sessionGif` is empty, so the menu closes up
+  instead of leaving a button-sized gap.
 
 ## Build
 

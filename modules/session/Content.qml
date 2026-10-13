@@ -50,6 +50,8 @@ Column {
     }
 
     AnimatedImage {
+        // Fork: collapse the gap when paths.sessionGif is empty (Column skips invisible items)
+        visible: Config.paths.sessionGif !== ""
         width: Tokens.sizes.session.button
         height: Tokens.sizes.session.button
         sourceSize.width: width * ((QsWindow.window as QsWindow)?.devicePixelRatio ?? 1)
