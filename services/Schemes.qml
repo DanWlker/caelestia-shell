@@ -104,13 +104,16 @@ Searcher {
         property var data
 
         // Name and flavour default to the folder and file name, e.g. schemes/nord/dark.json
-        readonly property string name: data?.name ?? modelData.parentDir.slice(modelData.parentDir.lastIndexOf("/") + 1)
-        readonly property string flavour: data?.flavour ?? modelData.baseName
+        // modelData is briefly null while a deleted file's entry is torn down
+        readonly property string dir: modelData?.parentDir ?? ""
+        readonly property string name: data?.name ?? dir.slice(dir.lastIndexOf("/") + 1)
+        readonly property string flavour: data?.flavour ?? modelData?.baseName ?? ""
         readonly property var colours: data?.colours ?? null
 
         readonly property FileView file: FileView {
-            path: scheme.modelData.path
+            path: scheme.modelData?.path ?? ""
             watchChanges: true
+            printErrors: false // A deleted file is dropped from the list anyway
             onFileChanged: reload()
             onLoaded: {
                 try {
