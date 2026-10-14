@@ -69,6 +69,9 @@ Singleton {
     readonly property string connectionParamHidden: "802-11-wireless.hidden"
 
     signal connectionFailed(string ssid)
+    // Fork: emitted once per network refresh. Lists sort on this instead of binding to every access point's
+    // properties, which re-sorted on each change (about a thousand times per scan with 100+ networks).
+    signal networksUpdated
 
     function detectPasswordRequired(error: string): bool {
         if (!error || error.length === 0) {
@@ -419,9 +422,12 @@ Singleton {
             // Fork: the passwordless probe makes nmcli save a profile without a password. Remove it if the probe
             // fails, or later clicks would trust it and never ask for the password.
             const hadProfile = hasSavedProfile(ssid);
+            let cleanedUp = false; // The result can arrive twice (pending and process callbacks)
             connectWireless(ssid, "", bssid, result => {
-                if (!result.success && !hadProfile)
+                if (!result.success && !hadProfile && !cleanedUp) {
+                    cleanedUp = true;
                     forgetNetwork(ssid);
+                }
 
                 if (result.success) {
                     if (callback)
@@ -1066,6 +1072,7 @@ Singleton {
                 }
             }
 
+            root.networksUpdated();
             if (callback)
                 callback(root.networks);
             checkPendingConnection();

@@ -30,6 +30,40 @@ PageBase {
             onTriggered: Nmcli.rescanWifi()
         }
 
+        // Fork: search networks by name
+        StyledTextField {
+            id: searchField
+
+            Layout.fillWidth: true
+            Layout.bottomMargin: Tokens.spacing.medium
+            placeholderText: Tr.tr("Search networks")
+            leadingIcon: "search"
+            trailingIcon: text ? "close" : ""
+            inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
+            Keys.onEscapePressed: event => {
+                if (text) {
+                    text = "";
+                    event.accepted = true;
+                } else {
+                    event.accepted = false;
+                }
+            }
+
+            MouseArea {
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: parent.supportingTextOffset
+                width: parent.trailingOffset + parent.horizontalPadding
+                visible: searchField.text.length > 0
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    searchField.text = "";
+                    searchField.forceActiveFocus();
+                }
+            }
+        }
+
         ConnectedRect {
             Layout.fillWidth: true
             implicitHeight: headerLayout.implicitHeight + Tokens.padding.medium * 2
@@ -135,6 +169,8 @@ PageBase {
 
             nState: root.nState
             enableFilter: true
+            filterKey: savedFilter.filterState * 27 + secureFilter.filterState * 9 + highFreqFilter.filterState * 3 + lowFreqFilter.filterState
+            filterText: searchField.text
             last: true
         }
     }

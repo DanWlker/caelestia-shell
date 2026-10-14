@@ -17,12 +17,44 @@ ItemList {
     required property NexusState nState
     property int limit: 0 // 0 = show all
     property bool enableFilter
+    property int filterKey // Fork: changing it re-applies networkFilter (AllNetworksPage binds its filter states here)
+    property string filterText // Fork: only networks whose name contains this (case-insensitive)
 
     signal networkSelected(ap: Nmcli.AccessPoint)
 
     function networkFilter(ap: Nmcli.AccessPoint): bool {
         return true;
     }
+
+    // Fork: sorted once per update (throttled) instead of as a live binding over every access point, and each
+    // network's saved-profile check runs once instead of on every comparison. The binding froze the shell for
+    // seconds on each scan with 100+ networks.
+    function refreshNetworks(): void {
+        const connecting = Nmcli.connectingSsid();
+        // Lower rank sorts higher in the list
+        const ranked = Nmcli.networks.map(n => ({
+                    n,
+                    rank: n.active ? 0 : n.ssid === connecting ? 1 : Nmcli.hasSavedProfile(n.ssid) ? 2 : 3,
+                    strength: n.strength
+                }));
+        ranked.sort((a, b) => a.rank - b.rank || b.strength - a.strength);
+        const search = root.filterText.trim().toLowerCase();
+        const sorted = ranked.map(r => r.n).filter(n => !search || n.ssid.toLowerCase().includes(search));
+        if (root.limit > 0 && sorted.length > root.limit)
+            sorted.length = root.limit;
+        networksModel.values = root.enableFilter ? sorted.filter(root.networkFilter) : sorted;
+    }
+
+    function scheduleRefresh(): void {
+        if (!refreshTimer.running)
+            refreshTimer.start();
+    }
+
+    onLimitChanged: scheduleRefresh()
+    onEnableFilterChanged: scheduleRefresh()
+    onFilterKeyChanged: scheduleRefresh()
+    onFilterTextChanged: refreshNetworks() // Immediately, so typing feels direct
+    Component.onCompleted: refreshNetworks()
 
     showList: Nmcli.wifiEnabled
     placeholderIcon: Nmcli.wifiEnabled ? "wifi_find" : "signal_wifi_off"
@@ -31,15 +63,34 @@ ItemList {
     list.anchors.top: scanningIndicator.bottom
 
     model: ScriptModel {
-        values: {
-            const connecting = Nmcli.connectingSsid();
-            // Lower rank sorts higher in the list
-            const rank = n => n.active ? 0 : n.ssid === connecting ? 1 : Nmcli.hasSavedProfile(n.ssid) ? 2 : 3;
-            const sorted = [...Nmcli.networks].sort((a, b) => rank(a) - rank(b) || b.strength - a.strength);
-            if (root.limit > 0 && sorted.length > root.limit)
-                sorted.length = root.limit;
-            return root.enableFilter ? sorted.filter(root.networkFilter) : sorted;
+        id: networksModel
+    }
+
+    Timer {
+        id: refreshTimer
+
+        interval: 100
+        onTriggered: root.refreshNetworks()
+    }
+
+    Connections {
+        function onNetworksUpdated(): void {
+            root.scheduleRefresh();
         }
+
+        function onNetworksChanged(): void {
+            root.scheduleRefresh();
+        }
+
+        function onSavedConnectionSsidsChanged(): void {
+            root.scheduleRefresh();
+        }
+
+        function onWirelessInterfacesChanged(): void {
+            root.scheduleRefresh(); // Connecting state
+        }
+
+        target: Nmcli
     }
 
     delegate: StateLayer {
@@ -64,13 +115,14 @@ ItemList {
             if (!modelData.active) {
                 // Fork: upstream had no password prompt here and waited forever. A network that needs a password
                 // opens the Add network page pre-filled with it; any other failure re-enables the row.
+                // Greyed while connecting; set before connecting, since the password prompt can open immediately.
+                currentSelected = true;
+                root.networkSelected(modelData);
                 NetworkConnection.handleConnect(modelData, null, ap => {
                     network.currentSelected = false;
                     root.nState.connectSsid = ap.ssid;
                     root.nState.openSubPage(2); // Add network sub-page
                 }, () => network.currentSelected = false);
-                currentSelected = true;
-                root.networkSelected(modelData);
             } else {
                 // Active network: open its detail/settings sub-page.
                 root.nState.selectedNetworkSsid = modelData.ssid;

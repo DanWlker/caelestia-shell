@@ -51,14 +51,43 @@ ColumnLayout {
         font: Tokens.font.body.small
     }
 
+    // Fork: sorted once per update (throttled) instead of as a live binding over every access point, which
+    // re-sorted on each one's change, hundreds of times per scan with 100+ networks
+    function refreshNetworks(): void {
+        wirelessModel.values = [...Nmcli.networks].sort((a, b) => {
+            if (a.active !== b.active)
+                return b.active - a.active;
+            return b.strength - a.strength;
+        }).slice(0, 8);
+    }
+
+    Timer {
+        id: networksRefreshTimer
+
+        interval: 100
+        onTriggered: root.refreshNetworks()
+    }
+
+    Connections {
+        function onNetworksUpdated(): void {
+            if (!networksRefreshTimer.running)
+                networksRefreshTimer.start();
+        }
+
+        function onNetworksChanged(): void {
+            if (!networksRefreshTimer.running)
+                networksRefreshTimer.start();
+        }
+
+        target: Nmcli
+    }
+
+    Component.onCompleted: refreshNetworks()
+
     Repeater {
         visible: root.view === "wireless"
         model: ScriptModel {
-            values: [...Nmcli.networks].sort((a, b) => {
-                if (a.active !== b.active)
-                    return b.active - a.active;
-                return b.strength - a.strength;
-            }).slice(0, 8)
+            id: wirelessModel
         }
 
         RowLayout {

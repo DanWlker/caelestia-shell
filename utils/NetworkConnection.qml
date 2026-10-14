@@ -45,6 +45,14 @@ QtObject {
             return;
         }
 
+        // Fork: a secured network without a saved profile always needs its password, so ask straight away. Upstream
+        // first disconnected the current network, then tried without a password (nmcli takes ~6 s to give up) and
+        // left a half-made profile behind. The password prompt connects by itself, no disconnect needed.
+        if (network.isSecure && !Nmcli.hasSavedProfile(network.ssid)) {
+            root.askPassword(network, session, onPasswordNeeded);
+            return;
+        }
+
         if (Nmcli.active && Nmcli.active.ssid !== network.ssid) {
             Nmcli.disconnectFromNetwork();
             Qt.callLater(() => {
@@ -52,6 +60,20 @@ QtObject {
             });
         } else {
             root.connectToNetwork(network, session, onPasswordNeeded, onFailed);
+        }
+    }
+
+    // Show the password prompt for a network (session for the old control centre, otherwise the callback)
+    function askPassword(network, session, onPasswordNeeded): void {
+        // Clear pending connection if exists
+        if (Nmcli.pendingConnection)
+            Nmcli.clearPendingConnection();
+
+        if (session && session.network) {
+            session.network.showPasswordDialog = true;
+            session.network.pendingNetwork = network;
+        } else if (onPasswordNeeded) {
+            onPasswordNeeded(network);
         }
     }
 
@@ -80,21 +102,7 @@ QtObject {
             handled = true;
 
             if (result.needsPassword && network.isSecure) {
-                // Clear pending connection if exists
-                if (Nmcli.pendingConnection) {
-                    Nmcli.connectionCheckTimer.stop();
-                    Nmcli.immediateCheckTimer.stop();
-                    Nmcli.immediateCheckTimer.checkCount = 0;
-                    Nmcli.pendingConnection = null;
-                }
-
-                // Handle password dialog - use session if available, otherwise use callback
-                if (session && session.network) {
-                    session.network.showPasswordDialog = true;
-                    session.network.pendingNetwork = network;
-                } else if (onPasswordNeeded) {
-                    onPasswordNeeded(network);
-                }
+                root.askPassword(network, session, onPasswordNeeded);
                 return;
             }
 
