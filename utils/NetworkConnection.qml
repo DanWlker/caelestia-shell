@@ -45,28 +45,31 @@ QtObject {
             return;
         }
 
-        // Fork: a secured network without a saved profile always needs its password, so ask straight away. Upstream
-        // first disconnected the current network, then tried without a password (nmcli takes ~6 s to give up) and
-        // left a half-made profile behind. The password prompt connects by itself, no disconnect needed.
-        if (network.isSecure && !Nmcli.hasSavedProfile(network.ssid)) {
-            root.askPassword(network, session, onPasswordNeeded);
-            return;
-        }
+        // Fork: ask NetworkManager for a saved profile first (the shell's cached lists can be empty or still loading,
+        // and profiles can be named differently). A password network without one asks for the password straight
+        // away; upstream disconnected first and probed without a password (nmcli takes ~6 s to give up). The
+        // password prompt connects by itself, so nothing is disconnected for it.
+        Nmcli.findSavedProfile(network.ssid, profile => {
+            if (!profile && network.needsPassword) {
+                root.askPassword(network, session, onPasswordNeeded);
+                return;
+            }
 
-        if (Nmcli.active && Nmcli.active.ssid !== network.ssid) {
-            Nmcli.disconnectFromNetwork();
-            Qt.callLater(() => {
-                root.connectToNetwork(network, session, onPasswordNeeded, onFailed);
-            });
-        } else {
-            root.connectToNetwork(network, session, onPasswordNeeded, onFailed);
-        }
+            if (Nmcli.active && Nmcli.active.ssid !== network.ssid) {
+                Nmcli.disconnectFromNetwork();
+                Qt.callLater(() => {
+                    root.connectToNetwork(network, session, onPasswordNeeded, onFailed, profile);
+                });
+            } else {
+                root.connectToNetwork(network, session, onPasswordNeeded, onFailed, profile);
+            }
+        });
     }
 
     // Show the password prompt for a network (session for the old control centre, otherwise the callback)
     function askPassword(network, session, onPasswordNeeded): void {
-        // Clear pending connection if exists
-        if (Nmcli.pendingConnection)
+        // Clear this network's pending connection (not another network's attempt still in progress)
+        if (Nmcli.pendingConnection?.ssid === network.ssid)
             Nmcli.clearPendingConnection();
 
         if (session && session.network) {
@@ -86,8 +89,9 @@ QtObject {
      * @param session Optional Session object (for controlcenter - must have network property with showPasswordDialog and pendingNetwork)
      * @param onPasswordNeeded Optional callback function(network) called when password is needed (for bar popouts)
      * @param onFailed Optional callback function(network, result) called when the connection fails for any other reason
+     * @param profile Optional name of the network's saved profile (fork), activated directly
      */
-    function connectToNetwork(network, session, onPasswordNeeded, onFailed): void {
+    function connectToNetwork(network, session, onPasswordNeeded, onFailed, profile): void {
         if (!network) {
             return;
         }
@@ -112,10 +116,10 @@ QtObject {
                 onFailed(network, result);
         };
 
-        if (Nmcli.hasSavedProfile(network.ssid))
-            Nmcli.connectSavedNetwork(network.ssid, network.bssid, onResult);
-        else if (network.isSecure)
-            Nmcli.connectToNetworkWithPasswordCheck(network.ssid, true, onResult, network.bssid);
+        // Without a profile: an open network, or one whose profile just vanished (nmcli then reports that a password
+        // is needed, and the prompt opens)
+        if (profile)
+            Nmcli.connectSavedNetwork(profile, network.ssid, network.bssid, onResult);
         else
             Nmcli.connectToNetwork(network.ssid, "", network.bssid, onResult);
     }

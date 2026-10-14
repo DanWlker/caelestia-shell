@@ -17,7 +17,6 @@ ItemList {
     required property NexusState nState
     property int limit: 0 // 0 = show all
     property bool enableFilter
-    property int filterKey // Fork: changing it re-applies networkFilter (AllNetworksPage binds its filter states here)
     property string filterText // Fork: only networks whose name contains this (case-insensitive)
 
     signal networkSelected(ap: Nmcli.AccessPoint)
@@ -26,36 +25,6 @@ ItemList {
         return true;
     }
 
-    // Fork: sorted once per update (throttled) instead of as a live binding over every access point, and each
-    // network's saved-profile check runs once instead of on every comparison. The binding froze the shell for
-    // seconds on each scan with 100+ networks.
-    function refreshNetworks(): void {
-        const connecting = Nmcli.connectingSsid();
-        // Lower rank sorts higher in the list
-        const ranked = Nmcli.networks.map(n => ({
-                    n,
-                    rank: n.active ? 0 : n.ssid === connecting ? 1 : Nmcli.hasSavedProfile(n.ssid) ? 2 : 3,
-                    strength: n.strength
-                }));
-        ranked.sort((a, b) => a.rank - b.rank || b.strength - a.strength);
-        const search = root.filterText.trim().toLowerCase();
-        const sorted = ranked.map(r => r.n).filter(n => !search || n.ssid.toLowerCase().includes(search));
-        if (root.limit > 0 && sorted.length > root.limit)
-            sorted.length = root.limit;
-        networksModel.values = root.enableFilter ? sorted.filter(root.networkFilter) : sorted;
-    }
-
-    function scheduleRefresh(): void {
-        if (!refreshTimer.running)
-            refreshTimer.start();
-    }
-
-    onLimitChanged: scheduleRefresh()
-    onEnableFilterChanged: scheduleRefresh()
-    onFilterKeyChanged: scheduleRefresh()
-    onFilterTextChanged: refreshNetworks() // Immediately, so typing feels direct
-    Component.onCompleted: refreshNetworks()
-
     showList: Nmcli.wifiEnabled
     placeholderIcon: Nmcli.wifiEnabled ? "wifi_find" : "signal_wifi_off"
     placeholderText: Nmcli.wifiEnabled ? Tr.tr("No networks found") : Tr.tr("Wi-Fi disabled")
@@ -63,34 +32,14 @@ ItemList {
     list.anchors.top: scanningIndicator.bottom
 
     model: ScriptModel {
-        id: networksModel
-    }
-
-    Timer {
-        id: refreshTimer
-
-        interval: 100
-        onTriggered: root.refreshNetworks()
-    }
-
-    Connections {
-        function onNetworksUpdated(): void {
-            root.scheduleRefresh();
+        // Fork: Nmcli.sortedNetworks is sorted once per refresh (see there); only search, limit and filters here
+        values: {
+            const search = root.filterText.trim().toLowerCase();
+            const list = [...Nmcli.sortedNetworks].filter(n => !search || n.ssid.toLowerCase().includes(search));
+            if (root.limit > 0 && list.length > root.limit)
+                list.length = root.limit;
+            return root.enableFilter ? list.filter(root.networkFilter) : list;
         }
-
-        function onNetworksChanged(): void {
-            root.scheduleRefresh();
-        }
-
-        function onSavedConnectionSsidsChanged(): void {
-            root.scheduleRefresh();
-        }
-
-        function onWirelessInterfacesChanged(): void {
-            root.scheduleRefresh(); // Connecting state
-        }
-
-        target: Nmcli
     }
 
     delegate: StateLayer {

@@ -42,19 +42,22 @@ original repo; merge from it to update.
 - **Wi-Fi connecting** (`utils/NetworkConnection.qml`, `services/Nmcli.qml`, bar `Network.qml`, settings
   `NetworkList.qml`/`AddNetworkPage.qml`): every attempt reports its result, so a failure shows a toast with nmcli's
   error and stops the spinner instead of hanging. A saved profile without its password asks for one. The settings
-  app asks for passwords on the Add network page (pre-filled) instead of waiting forever. A secured network without a saved profile asks for
-  its password straight away (upstream disconnected first, then probed without a password: ~6 s, plus a half-made
-  profile, now removed if a probe still fails). Retry delays actually wait (`Nmcli.runAfter`), and failures log
+  app asks for passwords on the Add network page (pre-filled) instead of waiting forever. Clicking a network first asks NetworkManager for its saved
+  profile (`Nmcli.findSavedProfile`; the cached lists can be empty or stale) and activates it; a password network
+  without one asks for its password straight away (upstream disconnected first, then probed without a password,
+  ~6 s, leaving a half-made profile). Enhanced Open (OWE) networks don't count as needing a password
+  (`AccessPoint.needsPassword`). Retry delays actually wait (`Nmcli.runAfter`), and failures log
   nmcli's message. A slow connection is no longer reported as failed: the safety timeout is 45 s (was 4 s), and only
   a real failure emits `connectionFailed` (upstream also emitted it for profile lookups and retried attempts, so the
   password page showed an error and deleted the profile). The password page finishes on nmcli's success instead of
   waiting for the network list, which can lag and tripped its 10 s "failed" watchdog. Saved networks reconnect via
   `nmcli connection up` (`Nmcli.connectSavedNetwork`), and new profiles aren't pinned to one access point (BSSID),
   so dual-band networks don't get a password-less duplicate. Both password fields have an eye toggle.
-- **Wi-Fi lists** (settings `NetworkList.qml`, bar `Network.qml`): sorted once per refresh (`Nmcli.networksUpdated`,
-  throttled to 100 ms) instead of as live bindings over every access point. With 100+ networks nearby, the binding
+- **Wi-Fi lists** (settings `NetworkList.qml`, bar `Network.qml`): both show `Nmcli.sortedNetworks`, sorted once per
+  refresh (connected, connecting, saved, signal) instead of in live bindings over every access point. With 100+ networks nearby, the binding
   re-sorted ~1000 times per scan and froze the shell for ~4 s each time. The All networks page has a search field
-  (by name; `NetworkList.filterText`).
+  (by name; `NetworkList.filterText`). `StyledTextField` gained a clickable trailing icon
+  (`trailingIconInteractive`, `trailingIconClicked`) for the password eye and the search clear button.
 - **Temperatures**: a reading of 0 (the services' value when there's no sensor) shows "N/A" on the performance
   cards and lock screen. Asahi exposes no CPU/GPU die temperature, and the CPU service only knows Intel/AMD labels.
 - **Lyrics**: the dashboard media tab's lyrics panel and the "Lyrics backend" setting are removed (no more

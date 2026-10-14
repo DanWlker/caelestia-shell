@@ -28,6 +28,10 @@ Singleton {
     property var wifiConnectionQueue: []
     property int currentSsidQueryIndex: 0
     property var pendingConnection: null
+    // Fork: networks in display order (connected, connecting, saved, then signal strength), rebuilt once per refresh
+    // and when saved/connecting state changes. The lists sorted in live bindings over every access point instead,
+    // re-sorting ~1000 times per scan with 100+ networks nearby and freezing the shell for seconds.
+    property list<AccessPoint> sortedNetworks: []
     property var wirelessDeviceDetails: null
     property var ethernetDeviceDetails: null
     property string ethernetDataUsage: ""
@@ -69,9 +73,6 @@ Singleton {
     readonly property string connectionParamHidden: "802-11-wireless.hidden"
 
     signal connectionFailed(string ssid)
-    // Fork: emitted once per network refresh. Lists sort on this instead of binding to every access point's
-    // properties, which re-sorted on each change (about a thousand times per scan with 100+ networks).
-    signal networksUpdated
 
     function detectPasswordRequired(error: string): bool {
         if (!error || error.length === 0) {
@@ -396,6 +397,45 @@ Singleton {
         });
     }
 
+    // Fork: see sortedNetworks. Saved profiles are looked up in a set built once, not per comparison.
+    function rankNetworks(): void {
+        const saved = new Set([...root.savedConnectionSsids, ...root.savedConnections].filter(n => n).map(n => n.toLowerCase().trim()));
+        const connecting = connectingSsid();
+        const rank = n => n.active ? 0 : n.ssid === connecting ? 1 : saved.has(n.ssid.toLowerCase().trim()) ? 2 : 3;
+        root.sortedNetworks = [...root.networks].map(n => ({
+                    n,
+                    rank: rank(n),
+                    strength: n.strength
+                })).sort((a, b) => a.rank - b.rank || b.strength - a.strength).map(r => r.n);
+    }
+
+    onSavedConnectionSsidsChanged: rankNetworks()
+    onSavedConnectionsChanged: rankNetworks()
+    onWirelessInterfacesChanged: rankNetworks()
+
+    // Fork: find the saved Wi-Fi profile for an SSID by asking NetworkManager, since the cached saved lists can be
+    // empty (startup) or partly loaded, and profiles can be named differently from the SSID. callback(name or "")
+    function findSavedProfile(ssid: string, callback: var): void {
+        executeCommand(["-t", "-f", "UUID,TYPE", root.nmcliCommandConnection, "show"], list => {
+            const uuids = list.success ? list.output.trim().split("\n").map(l => l.split(":")).filter(p => p[1] === root.connectionTypeWireless).map(p => p[0]) : [];
+            if (uuids.length === 0) {
+                callback("");
+                return;
+            }
+            executeCommand(["-t", "-f", "connection.id,802-11-wireless.ssid", root.nmcliCommandConnection, "show", ...uuids], details => {
+                let name = "";
+                let found = "";
+                for (const line of (details.output ?? "").split("\n")) {
+                    if (line.startsWith("connection.id:"))
+                        name = line.slice("connection.id:".length);
+                    else if (line.startsWith("802-11-wireless.ssid:") && line.slice("802-11-wireless.ssid:".length) === ssid && !found)
+                        found = name;
+                }
+                callback(found);
+            });
+        });
+    }
+
     // Fork: stop tracking the current connection attempt (it has finished, one way or the other)
     function clearPendingConnection(): void {
         connectionCheckTimer.stop();
@@ -419,16 +459,7 @@ Singleton {
     function connectToNetworkWithPasswordCheck(ssid: string, isSecure: bool, callback: var, bssid: string): void {
         if (isSecure) {
             const hasBssid = bssid !== undefined && bssid !== null && bssid.length > 0;
-            // Fork: the passwordless probe makes nmcli save a profile without a password. Remove it if the probe
-            // fails, or later clicks would trust it and never ask for the password.
-            const hadProfile = hasSavedProfile(ssid);
-            let cleanedUp = false; // The result can arrive twice (pending and process callbacks)
             connectWireless(ssid, "", bssid, result => {
-                if (!result.success && !hadProfile && !cleanedUp) {
-                    cleanedUp = true;
-                    forgetNetwork(ssid);
-                }
-
                 if (result.success) {
                     if (callback)
                         callback({
@@ -457,11 +488,10 @@ Singleton {
         }
     }
 
-    // Fork: reconnect to a saved network by activating its profile (named after the SSID, as the shell and nmcli
-    // name them). `device wifi connect` makes a new profile without the password when the saved one doesn't fit
-    // the access point it picks. Falls back to it when there's no profile by that name.
-    function connectSavedNetwork(ssid: string, bssid: string, callback: var): void {
-        executeCommand([root.nmcliCommandConnection, "up", ssid], result => {
+    // Fork: reconnect to a saved network by activating its profile. `device wifi connect` makes a new profile without
+    // the password when the saved one doesn't fit the access point it picks. Falls back to it if the profile is gone.
+    function connectSavedNetwork(profile: string, ssid: string, bssid: string, callback: var): void {
+        executeCommand([root.nmcliCommandConnection, "up", "id", profile], result => {
             if (!result.success && result.exitCode === 10 && (result.error ?? "").includes("unknown connection")) {
                 connectWireless(ssid, "", bssid, callback);
                 return;
@@ -1072,7 +1102,9 @@ Singleton {
                 }
             }
 
-            root.networksUpdated();
+            // Synchronously: removed access points are destroyed on the next event loop pass, and must be out of the
+            // lists before then
+            root.rankNetworks();
             if (callback)
                 callback(root.networks);
             checkPendingConnection();
@@ -1887,6 +1919,8 @@ Singleton {
         readonly property bool active: lastIpcObject.active
         readonly property string security: lastIpcObject.security
         readonly property bool isSecure: security.length > 0
+        // Fork: a password (or login) is needed. Not for Enhanced Open (OWE), which is encrypted but has none.
+        readonly property bool needsPassword: /WPA|WEP|802\.1X/.test(security)
     }
 
     component EthernetDevice: QtObject {

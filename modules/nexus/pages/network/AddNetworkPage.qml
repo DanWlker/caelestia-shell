@@ -191,25 +191,17 @@ PageBase {
                 placeholderText: Tr.tr("Password")
                 leadingIcon: "key"
                 trailingIcon: showPassword ? "visibility_off" : "visibility"
+                trailingIconInteractive: true
                 echoMode: showPassword ? TextInput.Normal : TextInput.Password
+                onTrailingIconClicked: {
+                    showPassword = !showPassword;
+                    forceActiveFocus();
+                }
                 // TRANSLATORS: WPA is a protocol name, leave it untranslated
                 supportingText: Tr.tr("WPA passwords are at least 8 characters")
                 errorText: root.failed ? Tr.tr("Connection failed — check the password") : Tr.tr("Password must be at least 8 characters")
 
                 onAccepted: root.submit()
-
-                MouseArea {
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    anchors.bottomMargin: parent.supportingTextOffset
-                    width: parent.trailingOffset + parent.horizontalPadding
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        passwordField.showPassword = !passwordField.showPassword;
-                        passwordField.forceActiveFocus();
-                    }
-                }
             }
         }
 
