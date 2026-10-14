@@ -31,8 +31,8 @@ original repo; merge from it to update.
   LRCLIB/NetEase lookups); the tab is narrower, with the player switcher moved under the playback controls
   (`modules/dashboard/media/PlayerSelector.qml`). The C++ `Lyrics` service and its config (`services.lyricsBackend`,
   `paths.lyricsDir`) are removed too; the services plugin no longer links Qt Network.
-- **Session menu**: the GIF between the buttons is hidden when `paths.sessionGif` is empty, so the menu closes up
-  instead of leaving a button-sized gap.
+- **GIFs removed**: the bongo cat under the dashboard's media controls and the spinning GIF in the session menu,
+  with their assets and config (`paths.mediaGif`, `paths.sessionGif`, `general.sessionGifSpeed`).
 
 ## Build
 
