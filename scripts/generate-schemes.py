@@ -404,11 +404,13 @@ COPIED = {  # (name, flavour): upstream file
 }
 
 
+ROLES = list(scheme("", "", SCHEMES["catppuccin"]["mocha"])["colours"])  # Every role a generated scheme has
+
+
 def copied(name: str, flavour: str, path: str) -> dict:
-    roles = scheme("", "", next(iter(SCHEMES["catppuccin"].values())))["colours"].keys()
     upstream = dict(line.split() for line in (UPSTREAM_DIR / path).read_text().splitlines() if line.strip())
     return {"name": name, "flavour": flavour, "mode": Path(path).stem,
-            "colours": {role: upstream[role].lower() for role in roles}}
+            "colours": {role: upstream[role].lower() for role in ROLES}}
 
 
 out_dir = Path(__file__).resolve().parent.parent / "assets" / "schemes"

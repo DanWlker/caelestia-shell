@@ -25,6 +25,7 @@ Singleton {
     readonly property Transparency transparency: Transparency {}
     readonly property alias wallLuminance: analyser.luminance
 
+    property var fallbackScheme // Parsed fallback scheme, cached by loadScheme
     property bool cooldownPending
     property real lastBaseTransparency
 
@@ -80,25 +81,31 @@ Singleton {
 
     // Fork: Schemes copies the picked scheme to the state file, as the caelestia CLI did
     function setScheme(data: string): void {
-        loadScheme(data);
+        loadScheme(data, false);
         schemeFile.setText(data);
     }
 
     // Show a scheme without applying it (the launcher's >scheme list); showPreview = false goes back
     function previewScheme(data: string): void {
-        load(fallbackFile.text(), true);
-        load(data, true);
+        loadScheme(data, true);
         showPreview = true;
     }
 
-    // Colours missing from a scheme keep their bundled Catppuccin Mocha value
-    function loadScheme(data: string): void {
-        load(fallbackFile.text(), false);
+    // Colours missing from a scheme keep their bundled Catppuccin Mocha value. Merged first, so each colour
+    // is set once; an invalid scheme loads Mocha.
+    function loadScheme(data: string, isPreview: bool): void {
+        if (!fallbackScheme)
+            fallbackScheme = JSON.parse(fallbackFile.text());
+        let scheme = fallbackScheme;
         try {
-            load(data, false);
+            const parsed = JSON.parse(data);
+            scheme = Object.assign({}, parsed, {
+                colours: Object.assign({}, fallbackScheme.colours, parsed.colours)
+            });
         } catch (e) {
-            console.warn(`Invalid colour scheme ${schemeFile.path}: ${e}`);
+            console.warn(`Invalid colour scheme${isPreview ? " (preview)" : ` ${schemeFile.path}`}: ${e}`);
         }
+        load(JSON.stringify(scheme), isPreview);
     }
 
     function reloadHyprRules(): void {
@@ -139,7 +146,7 @@ Singleton {
         watchChanges: true
         printErrors: false
         onFileChanged: reload()
-        onLoaded: root.loadScheme(text())
+        onLoaded: root.loadScheme(text(), false)
         onLoadFailed: root.load(fallbackFile.text(), false)
     }
 

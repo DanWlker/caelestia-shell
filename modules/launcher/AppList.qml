@@ -26,13 +26,29 @@ StyledListView {
             displayText = search.text;
     }
 
+    property string highlightedScheme // "name flavour" of the highlighted >scheme row
+    property string lastResultsText
+
     // Fork: preview the highlighted scheme while browsing >scheme; the applied one comes back on leaving
     function updateSchemePreview(): void {
         const scheme = (currentItem as SchemeItem)?.modelData;
-        if (screenState.launcher && state === "scheme" && scheme?.colours)
+        if (screenState.launcher && state === "scheme" && scheme?.colours) {
+            highlightedScheme = `${scheme.name} ${scheme.flavour}`;
             Schemes.preview(scheme);
-        else
+        } else {
             Schemes.stopPreview();
+        }
+    }
+
+    // Fork: in >scheme, a new search starts at the top, no search starts on the applied scheme (so the preview
+    // starts unchanged), and a reload of the list (scheme files changed) keeps the highlighted scheme
+    function indexForResults(values: var): int {
+        const sameSearch = displayText === lastResultsText;
+        lastResultsText = displayText;
+        if (displayState !== "scheme")
+            return 0;
+        const key = sameSearch ? highlightedScheme : Schemes.transformSearch(displayText).trim() ? "" : Schemes.currentScheme;
+        return key ? Math.max(0, values.findIndex(s => `${s.name} ${s.flavour}` === key)) : 0;
     }
 
     function stateForText(text: string): string {
@@ -60,11 +76,7 @@ StyledListView {
 
     model: ScriptModel {
         values: root.resultsForText(root.displayText)
-        onValuesChanged: {
-            // Fork: >scheme without a search starts on the applied scheme, so the preview starts unchanged
-            const startOnCurrent = root.displayState === "scheme" && !Schemes.transformSearch(root.displayText).trim();
-            root.currentIndex = startOnCurrent ? Math.max(0, values.findIndex(s => `${s.name} ${s.flavour}` === Schemes.currentScheme)) : 0;
-        }
+        onValuesChanged: root.currentIndex = root.indexForResults(values)
     }
 
     spacing: Tokens.spacing.small
@@ -269,6 +281,16 @@ StyledListView {
         }
 
         target: root.search
+    }
+
+    // The highlighted scheme's file changed: show the new colours
+    Connections {
+        function onDataChanged(): void {
+            root.updateSchemePreview();
+        }
+
+        target: (root.currentItem as SchemeItem)?.modelData ?? null
+        ignoreUnknownSignals: true
     }
 
     Connections {
