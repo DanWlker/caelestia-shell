@@ -6,7 +6,8 @@ scheme picker (>scheme) lists, alongside any in paths.schemeDir; catppuccin/moch
 a scheme has been picked. Palettes are the themes' official ones (sources next to each); a few schemes are copied
 from upstream instead (see COPIED). Each theme fills the
 same slots (a Catppuccin-style ramp from crust to text, five accents and 16 terminal colours), and scheme()
-maps the slots to roles. Edit and rerun (stale files in assets/schemes are removed):
+maps the slots to roles. Generated colours are nudged only as far as needed to meet WCAG contrast (4.5:1 for
+text, 3:1 for outlines), which deepens light themes' accent fills. Edit and rerun (stale files in assets/schemes are removed):
     python3 scripts/generate-schemes.py
 """
 
@@ -19,6 +20,26 @@ def mix(a: str, b: str, t: float) -> str:
     ca = [int(a[i : i + 2], 16) for i in (0, 2, 4)]
     cb = [int(b[i : i + 2], 16) for i in (0, 2, 4)]
     return "".join(f"{round(x + (y - x) * t):02x}" for x, y in zip(ca, cb))
+
+
+def _lum(h: str) -> float:
+    c = [int(h[i : i + 2], 16) / 255 for i in (0, 2, 4)]
+    c = [x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4 for x in c]
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+
+
+def contrast_ratio(a: str, b: str) -> float:
+    la, lb = sorted((_lum(a), _lum(b)), reverse=True)
+    return (la + 0.05) / (lb + 0.05)
+
+
+def ensure(fg: str, bg: str, target: float, toward: str) -> str:
+    """Move fg towards `toward` in small steps until it reaches `target` contrast against bg."""
+    for i in range(101):
+        c = mix(fg, toward, i / 100)
+        if contrast_ratio(c, bg) >= target:
+            return c
+    return toward
 
 
 def ansi(black, red, green, yellow, blue, magenta, cyan, white, bright_black, bright_white, brights=None):
@@ -36,6 +57,21 @@ def scheme(name: str, flavour: str, s: dict) -> dict:
     """
     light = s["mode"] == "light"
     on_accent = s["base"] if light else s["crust"]
+    away = "000000" if light else "ffffff"  # Direction that increases contrast with on_accent
+    s = dict(s)
+    # Accent fills: shift just enough that text on them (on_accent) reaches 4.5:1
+    for k in ("primary", "secondary", "tertiary", "red", "green"):
+        s[k] = ensure(s[k], on_accent, 4.5, away)
+    # Text, secondary text and outlines: move just enough to stay readable on raised panels / visible on the background
+    raised = mix(s["surface0"], s["surface1"], 0.5) if not light else mix(s["crust"], s["surface0"], 0.5)
+    s["text"] = ensure(s["text"], raised, 4.5, "ffffff" if not light else "000000")
+    s["subtext0"] = ensure(s["subtext0"], s["surface0"] if not light else s["crust"], 4.5, s["text"])
+    s["overlay0"] = ensure(s["overlay0"], s["base"], 3, s["text"])
+
+    def on_tint(fg: str, bg: str) -> str:
+        """Text on a tinted container: towards the text colour first, then past it if that isn't enough."""
+        fg = ensure(fg, bg, 4.5, s["text"])
+        return fg if contrast_ratio(fg, bg) >= 4.5 else ensure(fg, bg, 4.5, away)
 
     def accent(role: str, colour: str) -> dict[str, str]:
         """M3 accent group: the colour itself, text on it, and a dimmed container."""
@@ -43,14 +79,15 @@ def scheme(name: str, flavour: str, s: dict) -> dict:
             role: colour,
             f"on{role.capitalize()}": on_accent,
             f"{role}Container": mix(colour, s["base"], 0.65),
-            f"on{role.capitalize()}Container": mix(colour, s["text"], 0.5),
+            f"on{role.capitalize()}Container": on_tint(mix(colour, s["text"], 0.5), mix(colour, s["base"], 0.65)),
         }
 
     def fixed(role: str, colour: str) -> dict[str, str]:
         return {
             f"{role}Fixed": mix(colour, "ffffff", 0.3),
             f"{role}FixedDim": colour,
-            f"on{role.capitalize()}Fixed": s["text"] if light else s["crust"],
+            f"on{role.capitalize()}Fixed": ensure(s["text"] if light else s["crust"], mix(colour, "ffffff", 0.3), 4.5,
+                                                   "000000"),
             f"on{role.capitalize()}FixedVariant": mix(colour, s["base"], 0.65),
         }
 
@@ -154,10 +191,10 @@ CATPPUCCIN = {
 }
 for flavour, c in CATPPUCCIN.items():
     light = flavour == "latte"
-    # Terminal colours as in Catppuccin's own terminal ports
+    # Terminal colours as in Catppuccin's style guide (docs/style-guide.md)
     term = ansi(c["subtext1"] if light else c["surface1"], c["red"], c["green"], c["yellow"], c["blue"], c["pink"],
-                c["teal"], c["surface2"] if light else c["subtext1"], c["subtext0"] if light else c["surface2"],
-                c["surface1"] if light else c["subtext0"])
+                c["teal"], c["surface2"] if light else c["subtext0"], c["subtext0"] if light else c["surface2"],
+                c["surface1"] if light else c["subtext1"])
     SCHEMES.setdefault("catppuccin", {})[flavour] = {
         **{k: c[k] for k in ("crust", "mantle", "base", "surface0", "surface1", "overlay0", "overlay1", "subtext0",
                              "text", "red", "green")},
