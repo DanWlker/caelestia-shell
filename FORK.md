@@ -20,7 +20,7 @@ original repo; merge from it to update.
   - user: `*.json` anywhere under `paths.schemeDir` (default `~/.config/caelestia/schemes`, env
     `CAELESTIA_SCHEMES_DIR`). A missing `name`/`flavour` defaults to the folder/file name
     (`nord/dark.json`), a missing colour to bundled Mocha, and a user scheme replaces a bundled one with the same
-    name and flavour. A missing folder is fine (no schemes, no error), but one created later is only seen after a restart.
+    name and flavour. A missing folder is fine (no schemes, no error) and is picked up when created.
 
   `services/Schemes.qml` lists them for the launcher's `>scheme` picker (upstream's `SchemeItem` and "Scheme" action
   are kept) and IPC `scheme list/get/set <name> <flavour>`. Picking one copies it to

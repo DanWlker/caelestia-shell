@@ -75,6 +75,19 @@ Searcher {
         nameFilters: ["*.json"]
     }
 
+    // A folder that doesn't exist can't be watched: watch its parent, and rescan when the folder appears or goes
+    FileSystemModel {
+        readonly property string dir: Paths.schemesdir.replace(/\/+$/, "")
+
+        path: dir.slice(0, dir.lastIndexOf("/"))
+        filter: FileSystemModel.Dirs
+        nameFilters: [dir.slice(dir.lastIndexOf("/") + 1)]
+        onEntriesChanged: {
+            user.watchChanges = false;
+            user.watchChanges = true;
+        }
+    }
+
     // Bundled first, so user schemes win in the map above
     Variants {
         id: schemes
