@@ -58,6 +58,7 @@ original repo; merge from it to update.
   re-sorted ~1000 times per scan and froze the shell for ~4 s each time. The All networks page has a search field
   (by name; `NetworkList.filterText`). `StyledTextField` gained a clickable trailing icon
   (`trailingIconInteractive`, `trailingIconClicked`) for the password eye and the search clear button.
+- **Bluetooth**: the Pair new device page has a search field (name or address).
 - **Temperatures**: a reading of 0 (the services' value when there's no sensor) shows "N/A" on the performance
   cards and lock screen. Asahi exposes no CPU/GPU die temperature, and the CPU service only knows Intel/AMD labels.
 - **Lyrics**: the dashboard media tab's lyrics panel and the "Lyrics backend" setting are removed (no more

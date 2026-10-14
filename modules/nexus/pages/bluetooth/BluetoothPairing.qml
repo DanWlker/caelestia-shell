@@ -44,6 +44,31 @@ PageBase {
             target: root.adapter
         }
 
+        // Fork: search devices by name or address
+        StyledTextField {
+            id: searchField
+
+            Layout.fillWidth: true
+            Layout.bottomMargin: Tokens.spacing.medium
+            placeholderText: Tr.tr("Search devices")
+            leadingIcon: "search"
+            trailingIcon: text ? "close" : ""
+            trailingIconInteractive: true
+            inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
+            onTrailingIconClicked: {
+                text = "";
+                forceActiveFocus();
+            }
+            Keys.onEscapePressed: event => {
+                if (text) {
+                    text = "";
+                    event.accepted = true;
+                } else {
+                    event.accepted = false;
+                }
+            }
+        }
+
         ConnectedRect {
             Layout.fillWidth: true
             implicitHeight: headerText.implicitHeight + Tokens.padding.medium * 2
@@ -71,11 +96,14 @@ PageBase {
             extraHeight: scanIndicator.implicitHeight
             last: true
             placeholderIcon: "bluetooth_searching"
-            placeholderText: Tr.tr("Searching for devices…")
+            placeholderText: searchField.text.trim() ? Tr.tr("No devices match \"%1\"").arg(searchField.text.trim()) : Tr.tr("Searching for devices…")
             list.anchors.top: scanIndicator.bottom
 
             model: ScriptModel {
-                values: Bluetooth.devices.values.filter(d => !d.bonded).sort((a, b) => (b.pairing - a.pairing) || a.name.localeCompare(b.name)) // qmllint disable unresolved-type
+                values: {
+                    const search = searchField.text.trim().toLowerCase();
+                    return Bluetooth.devices.values.filter(d => !d.bonded && (!search || d.name.toLowerCase().includes(search) || d.address.toLowerCase().includes(search))).sort((a, b) => (b.pairing - a.pairing) || a.name.localeCompare(b.name)); // qmllint disable unresolved-type
+                }
             }
 
             delegate: Item {
