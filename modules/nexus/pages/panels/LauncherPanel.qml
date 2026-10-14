@@ -135,6 +135,12 @@ PageBase {
         }
 
         ToggleRow {
+            text: Tr.tr("Schemes")
+            checked: GlobalConfig.launcher.useFuzzy.schemes
+            onToggled: GlobalConfig.launcher.useFuzzy.schemes = checked
+        }
+
+        ToggleRow {
             last: true
             text: Tr.tr("Wallpapers")
             checked: GlobalConfig.launcher.useFuzzy.wallpapers

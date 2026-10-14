@@ -29,6 +29,9 @@ StyledListView {
     function stateForText(text: string): string {
         const prefix = GlobalConfig.launcher.actionPrefix;
         if (text.startsWith(prefix)) {
+            if (text.startsWith(`${prefix}scheme `))
+                return "scheme";
+
             return "actions";
         }
 
@@ -39,6 +42,8 @@ StyledListView {
         switch (stateForText(text)) {
         case "actions":
             return Actions.query(text);
+        case "scheme":
+            return Schemes.query(text);
         default:
             return Apps.search(text);
         }
@@ -89,6 +94,13 @@ StyledListView {
 
             PropertyChanges {
                 root.delegate: actionItem
+            }
+        },
+        State {
+            name: "scheme"
+
+            PropertyChanges {
+                root.delegate: schemeItem
             }
         }
     ]
@@ -223,6 +235,14 @@ StyledListView {
         id: actionItem
 
         ActionItem {
+            list: root
+        }
+    }
+
+    Component {
+        id: schemeItem
+
+        SchemeItem {
             list: root
         }
     }

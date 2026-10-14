@@ -55,6 +55,12 @@ class LauncherConfig : public settings::ObjectNode {
     CONFIG_GLOBAL_LIST(LauncherActionList, actions,
         DEFAULT_ARG({
             vmap({
+                { u"name"_s, markCtx(u"Scheme"_s, u"launcher action"_s) },
+                { u"icon"_s, u"palette"_s },
+                { u"description"_s, mark(u"Change the current colour scheme"_s) },
+                { u"command"_s, QStringList{ u"autocomplete"_s, u"scheme"_s } },
+            }),
+            vmap({
                 { u"name"_s, markCtx(u"Wallpaper"_s, u"launcher action"_s) },
                 { u"icon"_s, u"image"_s },
                 { u"description"_s, mark(u"Change the current wallpaper"_s) },

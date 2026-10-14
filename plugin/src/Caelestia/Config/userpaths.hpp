@@ -15,6 +15,9 @@ class UserPaths : public settings::ObjectNode {
 
     CONFIG_GLOBAL_PROPERTY(
         QString, wallpaperDir, QStandardPaths::writableLocation(QStandardPaths::PicturesLocation) + u"/Wallpapers"_s)
+    // Fork: extra colour schemes for the launcher's scheme picker, on top of the bundled assets/schemes
+    CONFIG_GLOBAL_PROPERTY(QString, schemeDir,
+        QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + u"/caelestia/schemes"_s)
     CONFIG_PROPERTY(QString, noNotifsPic, u"root:/assets/dino.png"_s)
     CONFIG_PROPERTY(QString, lockNoNotifsPic, u"root:/assets/dino.png"_s)
 };
