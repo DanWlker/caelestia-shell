@@ -59,6 +59,7 @@ ColumnLayout {
 
         isClosing = true;
         passwordContainer.passwordBuffer = "";
+        passwordContainer.showPassword = false;
         connectButton.connecting = false;
         connectButton.hasError = false;
         connectButton.text = Tr.tr("Connect");
@@ -262,6 +263,7 @@ ColumnLayout {
                 id: passwordContainer
 
                 property string passwordBuffer: ""
+                property bool showPassword // Fork: eye toggle
 
                 objectName: "passwordContainer"
                 Layout.topMargin: Tokens.spacing.largeIncreased
@@ -372,6 +374,30 @@ ColumnLayout {
                     onClicked: passwordContainer.forceActiveFocus()
                 }
 
+                // Fork: eye button; the characters below morph between dots and letters
+                MaterialIcon {
+                    id: revealBtn
+
+                    anchors.right: parent.right
+                    anchors.rightMargin: Tokens.padding.medium
+                    anchors.verticalCenter: parent.verticalCenter
+                    animate: true
+                    text: passwordContainer.showPassword ? "visibility_off" : "visibility"
+                    color: Colours.palette.m3onSurfaceVariant
+
+                    StateLayer {
+                        anchors.fill: undefined
+                        anchors.centerIn: parent
+                        implicitWidth: parent.implicitWidth + Tokens.padding.small * 2
+                        implicitHeight: implicitWidth
+                        radius: Tokens.rounding.full
+                        onClicked: {
+                            passwordContainer.showPassword = !passwordContainer.showPassword;
+                            passwordContainer.forceActiveFocus();
+                        }
+                    }
+                }
+
                 StyledText {
                     id: placeholder
 
@@ -391,28 +417,40 @@ ColumnLayout {
                 ListView {
                     id: charList
 
-                    readonly property int fullWidth: count * (implicitHeight + spacing) - spacing
+                    // Fork: each character morphs between a dot and its letter (eye toggle), rippling left to right
+                    readonly property real dotSize: Tokens.font.body.medium.pointSize
+                    readonly property real glyphWidth: glyphMetrics.advanceWidth("M")
 
                     anchors.centerIn: parent
-                    implicitWidth: fullWidth
-                    implicitHeight: Tokens.font.body.medium.pointSize
+                    implicitWidth: Math.min(contentWidth, parent.width - (revealBtn.implicitWidth + Tokens.padding.medium * 2) * 2)
+                    implicitHeight: Math.max(dotSize, glyphMetrics.height)
+                    clip: true
 
                     orientation: Qt.Horizontal
                     spacing: Tokens.spacing.extraSmall
                     interactive: false
+                    onCountChanged: positionViewAtEnd() // Long passwords: keep the newest characters in view
+
+                    FontMetrics {
+                        id: glyphMetrics
+
+                        font: Tokens.font.mono.medium
+                    }
 
                     model: ScriptModel {
                         values: passwordContainer.passwordBuffer.split("")
                     }
 
-                    delegate: StyledRect {
+                    delegate: Item {
                         id: ch
 
-                        implicitWidth: implicitHeight
-                        implicitHeight: charList.implicitHeight
+                        required property string modelData
+                        required property int index
+                        // 0 = dot, 1 = letter
+                        property real reveal: passwordContainer.showPassword ? 1 : 0
 
-                        color: Colours.palette.m3onSurface
-                        radius: Tokens.rounding.medium / 2
+                        implicitWidth: charList.dotSize + (charList.glyphWidth - charList.dotSize) * reveal
+                        implicitHeight: charList.implicitHeight
 
                         opacity: 0
                         scale: 0
@@ -421,6 +459,24 @@ ColumnLayout {
                             scale = 1;
                         }
                         ListView.onRemove: removeAnim.start()
+
+                        StyledRect {
+                            anchors.centerIn: parent
+                            implicitWidth: charList.dotSize
+                            implicitHeight: charList.dotSize
+                            color: Colours.palette.m3onSurface
+                            radius: Tokens.rounding.medium / 2
+                            opacity: 1 - ch.reveal
+                            scale: 1 - ch.reveal * 0.6
+                        }
+
+                        StyledText {
+                            anchors.centerIn: parent
+                            text: ch.modelData
+                            font: Tokens.font.mono.medium
+                            opacity: ch.reveal
+                            scale: 0.4 + ch.reveal * 0.6
+                        }
 
                         SequentialAnimation {
                             id: removeAnim
@@ -447,6 +503,17 @@ ColumnLayout {
                                 target: ch
                                 property: "ListView.delayRemove"
                                 value: false
+                            }
+                        }
+
+                        Behavior on reveal {
+                            SequentialAnimation {
+                                PauseAnimation {
+                                    duration: Math.min(ch.index, 20) * 15
+                                }
+                                Anim {
+                                    type: Anim.DefaultSpatial
+                                }
                             }
                         }
 
@@ -519,9 +586,16 @@ ColumnLayout {
 
                         // Connect to network
                         NetworkConnection.connectWithPassword(root.network, password, result => {
-                            if (result && result.success)
-                            // Connection successful, monitor will handle the rest
-                            {} else if (result && result.needsPassword) {
+                            if (result && result.success) {
+                                // Fork: nmcli reports the network connected. The shell's network list catches up a
+                                // few seconds later; upstream waited for the list, and its 10 s watchdog said
+                                // "failed" when the list lagged. Finish now and refresh the list.
+                                connectionMonitor.stop();
+                                connecting = false;
+                                text = Tr.tr("Connect");
+                                Nmcli.getNetworks(() => {});
+                                root.closeDialog();
+                            } else if (result && result.needsPassword) {
                                 // Shouldn't happen since we provided password
                                 connectionMonitor.stop();
                                 connecting = false;

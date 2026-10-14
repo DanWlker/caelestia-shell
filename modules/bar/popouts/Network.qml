@@ -139,7 +139,7 @@ ColumnLayout {
                                 root.passwordNetwork = network;
                                 root.showPasswordDialog = true;
                                 root.popouts.currentName = "wirelesspassword";
-                            });
+                            }, () => root.connectingToSsid = ""); // Fork: failed, stop the spinner
 
                             // Clear connecting state if connection succeeds immediately (saved profile)
                             // This is handled by the onActiveChanged connection below
@@ -370,6 +370,8 @@ ColumnLayout {
             if (root.popouts.currentName !== "wirelesspassword" && root.showPasswordDialog) {
                 root.showPasswordDialog = false;
                 root.passwordNetwork = null;
+                // Fork: also stop the spinner (cancelled, or connected, which clears it anyway)
+                root.connectingToSsid = "";
             }
         }
 

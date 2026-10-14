@@ -39,6 +39,17 @@ original repo; merge from it to update.
 - **Brightness**: monitors without DDC (all external monitors on Asahi) are not controllable
   (`Brightness.Monitor.controllable`): no OSD brightness slider, no bar-scroll/IPC changes. Upstream falls
   back to brightnessctl for them, which changes the laptop panel instead.
+- **Wi-Fi connecting** (`utils/NetworkConnection.qml`, `services/Nmcli.qml`, bar `Network.qml`, settings
+  `NetworkList.qml`/`AddNetworkPage.qml`): every attempt reports its result, so a failure shows a toast with nmcli's
+  error and stops the spinner instead of hanging. A saved profile without its password asks for one. The settings
+  app asks for passwords on the Add network page (pre-filled) instead of waiting forever. The passwordless probe's
+  half-made profile is removed when it fails. Retry delays actually wait (`Nmcli.runAfter`), and failures log
+  nmcli's message. A slow connection is no longer reported as failed: the safety timeout is 45 s (was 4 s), and only
+  a real failure emits `connectionFailed` (upstream also emitted it for profile lookups and retried attempts, so the
+  password page showed an error and deleted the profile). The password page finishes on nmcli's success instead of
+  waiting for the network list, which can lag and tripped its 10 s "failed" watchdog. Saved networks reconnect via
+  `nmcli connection up` (`Nmcli.connectSavedNetwork`), and new profiles aren't pinned to one access point (BSSID),
+  so dual-band networks don't get a password-less duplicate. Both password fields have an eye toggle.
 - **Temperatures**: a reading of 0 (the services' value when there's no sensor) shows "N/A" on the performance
   cards and lock screen. Asahi exposes no CPU/GPU die temperature, and the CPU service only knows Intel/AMD labels.
 - **Lyrics**: the dashboard media tab's lyrics panel and the "Lyrics backend" setting are removed (no more

@@ -62,7 +62,13 @@ ItemList {
 
         onClicked: {
             if (!modelData.active) {
-                NetworkConnection.handleConnect(modelData);
+                // Fork: upstream had no password prompt here and waited forever. A network that needs a password
+                // opens the Add network page pre-filled with it; any other failure re-enables the row.
+                NetworkConnection.handleConnect(modelData, null, ap => {
+                    network.currentSelected = false;
+                    root.nState.connectSsid = ap.ssid;
+                    root.nState.openSubPage(2); // Add network sub-page
+                }, () => network.currentSelected = false);
                 currentSelected = true;
                 root.networkSelected(modelData);
             } else {
