@@ -40,7 +40,7 @@ StyledRect {
     property color disabledColour: Qt.alpha(Colours.palette.m3onSurface, 0.1)
     property color disabledOnColour: Qt.alpha(Colours.palette.m3onSurface, 0.38)
 
-    property bool internalChecked
+    property bool internalChecked: checked // Fork: start from the real state (was false until checked changed)
     property real shapeMorphExpansion: shapeMorph && pressed ? 24 : 0 // Apparently it's always 24px no matter the width of the button
     readonly property color onColour: disabled ? disabledOnColour : internalChecked ? activeOnColour : inactiveOnColour
 

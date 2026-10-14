@@ -58,6 +58,7 @@ original repo; merge from it to update.
   re-sorted ~1000 times per scan and froze the shell for ~4 s each time. The All networks page has a search field
   (by name; `NetworkList.filterText`). `StyledTextField` gained a clickable trailing icon
   (`trailingIconInteractive`, `trailingIconClicked`) for the password eye and the search clear button.
+- **Toggle buttons** (`components/controls/ButtonBase.qml`): start from their real `checked` state instead of off.
 - **Polkit agent** (`modules/polkit/Polkit.qml`): the shell registers as the polkit agent and shows its own
   password prompt (dims all screens, prompt on the focused one), replacing hyprpolkitagent.
 - **Bluetooth**: the Pair new device page has a search field (name or address).
