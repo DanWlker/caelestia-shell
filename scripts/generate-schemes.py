@@ -3,7 +3,8 @@
 
 The fork has no caelestia CLI and no wallpaper-based schemes. These are the bundled schemes the launcher's
 scheme picker (>scheme) lists, alongside any in paths.schemeDir; catppuccin/mocha is also the fallback before
-a scheme has been picked. Palettes are the themes' official ones (sources next to each). Each theme fills the
+a scheme has been picked. Palettes are the themes' official ones (sources next to each); a few schemes are copied
+from upstream instead (see COPIED). Each theme fills the
 same slots (a Catppuccin-style ramp from crust to text, five accents and 16 terminal colours), and scheme()
 maps the slots to roles. Edit and rerun (stale files in assets/schemes are removed):
     python3 scripts/generate-schemes.py
@@ -174,17 +175,6 @@ SCHEMES["dracula"] = {"default": {
     "red": "ff5555", "green": "50fa7b",
     "term": ansi("21222c", "ff5555", "50fa7b", "f1fa8c", "bd93f9", "ff79c6", "8be9fd", "f8f8f2", "6272a4", "ffffff",
                  ["ff6e6e", "69ff94", "ffffa5", "d6acff", "ff92df", "a4ffff"]),
-}}
-
-# --- Everblush: github.com/Everblush/everblush.nvim (lua/everblush/palette.lua) -----------------------------------
-SCHEMES["everblush"] = {"default": {
-    "mode": "dark", "crust": mix("141b1e", "000000", 0.3), "mantle": mix("141b1e", "000000", 0.15), "base": "141b1e",
-    "surface0": "232a2d", "surface1": "2d3437",
-    "overlay0": mix("404749", "b3b9b8", 0.3), "overlay1": mix("404749", "b3b9b8", 0.5), "subtext0": "b3b9b8",
-    "text": "dadada", "primary": "67b0e8", "secondary": "c47fd5", "tertiary": "6cbfbf",
-    "red": "e57474", "green": "8ccf7e",
-    "term": ansi("232a2d", "e57474", "8ccf7e", "e5c76b", "67b0e8", "c47fd5", "6cbfbf", "b3b9b8", "2d3437", "bdc3c2",
-                 ["ef7e7e", "96d988", "f4d67a", "71baf2", "ce89df", "67cbe7"]),
 }}
 
 # --- Everforest: github.com/sainnhe/everforest (autoload/everforest.vim) ------------------------------------------
@@ -365,18 +355,39 @@ for flavour, t in TOKYONIGHT.items():
     }
 
 
+# --- Copied from upstream: github.com/caelestia-dots/cli (src/caelestia/data/schemes, GPL-3.0) -------------------
+# Caelestia's own schemes have no original palette to generate from, and upstream's Everblush is preferred over a
+# generated one, so these are taken as they are from scripts/upstream-schemes (shell colour roles only).
+UPSTREAM_DIR = Path(__file__).resolve().parent / "upstream-schemes"
+COPIED = {  # (name, flavour): upstream file
+    ("caelestia", "dark"): "caelestia/default/dark.txt",
+    ("caelestia", "light"): "caelestia/default/light.txt",
+    ("everblush", "default"): "everblush/medium/dark.txt",
+    ("shadotheme", "default"): "shadotheme/default/dark.txt",
+}
+
+
+def copied(name: str, flavour: str, path: str) -> dict:
+    roles = scheme("", "", next(iter(SCHEMES["catppuccin"].values())))["colours"].keys()
+    upstream = dict(line.split() for line in (UPSTREAM_DIR / path).read_text().splitlines() if line.strip())
+    return {"name": name, "flavour": flavour, "mode": Path(path).stem,
+            "colours": {role: upstream[role].lower() for role in roles}}
+
+
 out_dir = Path(__file__).resolve().parent.parent / "assets" / "schemes"
 written = set()
-for name, flavours in SCHEMES.items():
-    for flavour, slots in flavours.items():
-        out = out_dir / name / f"{flavour}.json"
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(json.dumps(scheme(name, flavour, slots), indent=4) + "\n")
-        written.add(out)
+outputs = [(name, flavour, scheme(name, flavour, slots)) for name, flavours in SCHEMES.items()
+           for flavour, slots in flavours.items()]
+outputs += [(name, flavour, copied(name, flavour, path)) for (name, flavour), path in COPIED.items()]
+for name, flavour, data in outputs:
+    out = out_dir / name / f"{flavour}.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(data, indent=4) + "\n")
+    written.add(out)
 # Remove schemes no longer generated, but keep the folder itself: a running shell watches it
 for stale in set(out_dir.glob("*/*.json")) - written:
     stale.unlink()
 for folder in out_dir.iterdir():
     if folder.is_dir() and not any(folder.iterdir()):
         folder.rmdir()
-print(f"Wrote {sum(map(len, SCHEMES.values()))} schemes to {out_dir}")
+print(f"Wrote {len(outputs)} schemes to {out_dir}")
