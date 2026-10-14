@@ -23,7 +23,8 @@ original repo; merge from it to update.
     name and flavour. A missing folder is fine (no schemes, no error) and is picked up when created.
 
   `services/Schemes.qml` lists them for the launcher's `>scheme` picker (upstream's `SchemeItem` and "Scheme" action
-  are kept) and IPC `scheme list/get/set <name> <flavour>`. Picking one copies it to
+  are kept; the highlighted scheme is previewed live, starting on the applied one) and IPC
+  `scheme list/get/set <name> <flavour>`. Picking one copies it to
   `~/.local/state/caelestia/scheme.json`, which `services/Colours.qml` watches as upstream does (Mocha until one
   is picked). Only the shell is themed; the CLI also themed other apps. Removed: the variant picker, light/dark
   toggle and actions, and `services.smartScheme`.

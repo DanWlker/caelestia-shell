@@ -26,6 +26,15 @@ StyledListView {
             displayText = search.text;
     }
 
+    // Fork: preview the highlighted scheme while browsing >scheme; the applied one comes back on leaving
+    function updateSchemePreview(): void {
+        const scheme = (currentItem as SchemeItem)?.modelData;
+        if (screenState.launcher && state === "scheme" && scheme?.colours)
+            Schemes.preview(scheme);
+        else
+            Schemes.stopPreview();
+    }
+
     function stateForText(text: string): string {
         const prefix = GlobalConfig.launcher.actionPrefix;
         if (text.startsWith(prefix)) {
@@ -51,7 +60,11 @@ StyledListView {
 
     model: ScriptModel {
         values: root.resultsForText(root.displayText)
-        onValuesChanged: root.currentIndex = 0
+        onValuesChanged: {
+            // Fork: >scheme without a search starts on the applied scheme, so the preview starts unchanged
+            const startOnCurrent = root.displayState === "scheme" && !Schemes.transformSearch(root.displayText).trim();
+            root.currentIndex = startOnCurrent ? Math.max(0, values.findIndex(s => `${s.name} ${s.flavour}` === Schemes.currentScheme)) : 0;
+        }
     }
 
     spacing: Tokens.spacing.small
@@ -78,8 +91,11 @@ StyledListView {
     }
 
     state: screenState.launcher ? requestedState : displayState
+    onStateChanged: updateSchemePreview()
+    onCurrentItemChanged: updateSchemePreview()
 
     Component.onCompleted: displayText = search.text
+    Component.onDestruction: Schemes.stopPreview()
 
     states: [
         State {
@@ -258,6 +274,7 @@ StyledListView {
     Connections {
         function onLauncherChanged() {
             root.syncDisplayText();
+            root.updateSchemePreview();
         }
 
         target: root.screenState

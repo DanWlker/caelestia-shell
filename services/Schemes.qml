@@ -24,6 +24,14 @@ Searcher {
         return `${item.name} ${item.flavour}`;
     }
 
+    function preview(scheme: Scheme): void {
+        Colours.previewScheme(scheme.json());
+    }
+
+    function stopPreview(): void {
+        Colours.showPreview = false;
+    }
+
     function setScheme(name: string, flavour: string): bool {
         const scheme = list.find(s => s.name === name && s.flavour === flavour);
         scheme?.apply();
@@ -125,11 +133,15 @@ Searcher {
             }
         }
 
-        function apply(): void {
-            Colours.setScheme(JSON.stringify(Object.assign({}, data, {
+        function json(): string {
+            return JSON.stringify(Object.assign({}, data, {
                 name,
                 flavour
-            }), null, 4) + "\n");
+            }), null, 4) + "\n";
+        }
+
+        function apply(): void {
+            Colours.setScheme(json());
         }
 
         function onClicked(list: var): void {

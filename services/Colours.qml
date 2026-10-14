@@ -84,6 +84,13 @@ Singleton {
         schemeFile.setText(data);
     }
 
+    // Show a scheme without applying it (the launcher's >scheme list); showPreview = false goes back
+    function previewScheme(data: string): void {
+        load(fallbackFile.text(), true);
+        load(data, true);
+        showPreview = true;
+    }
+
     // Colours missing from a scheme keep their bundled Catppuccin Mocha value
     function loadScheme(data: string): void {
         load(fallbackFile.text(), false);
