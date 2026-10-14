@@ -10,6 +10,7 @@ import Caelestia.I18n
 import qs.components
 import qs.components.containers
 import qs.components.controls
+import qs.components.effects
 import qs.services
 
 // Fork: polkit agent inside the shell, replacing hyprpolkitagent. While a request is open, every screen is dimmed and
@@ -38,10 +39,11 @@ Scope {
 
             required property ShellScreen modelData
             readonly property bool hasPrompt: modelData.name === root.promptScreen
+            property real dim // Starts at 0 so the dimming fades in
 
             screen: modelData
             name: "polkit"
-            color: Qt.alpha(Colours.palette.m3scrim, 0.45)
+            color: Qt.alpha(Colours.palette.m3scrim, dim)
             WlrLayershell.exclusionMode: ExclusionMode.Ignore
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: hasPrompt ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
@@ -50,6 +52,14 @@ Scope {
             anchors.bottom: true
             anchors.left: true
             anchors.right: true
+
+            Component.onCompleted: dim = 0.45
+
+            Behavior on dim {
+                Anim {
+                    type: Anim.DefaultEffects
+                }
+            }
 
             Loader {
                 anchors.centerIn: parent
@@ -84,6 +94,14 @@ Scope {
 
         Component.onCompleted: passwordField.forceActiveFocus()
 
+        // Shadow (RectangularShadow, cheaper than a layer effect)
+        Elevation {
+            anchors.fill: parent
+            radius: parent.radius
+            z: -1
+            level: 3
+        }
+
         Connections {
             function onAuthenticationFailed(): void {
                 passwordField.isError = true;
@@ -113,12 +131,15 @@ Scope {
                 font: Tokens.font.title.large
             }
 
+            // Capped, so a long command (e.g. pkexec with many arguments) can't push the buttons off screen
             StyledText {
                 Layout.fillWidth: true
                 text: prompt.flow.message
                 color: Colours.palette.m3onSurfaceVariant
                 font: Tokens.font.body.medium
-                wrapMode: Text.WordWrap
+                wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                maximumLineCount: 8
+                elide: Text.ElideRight
                 horizontalAlignment: Text.AlignHCenter
             }
 
