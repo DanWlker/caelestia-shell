@@ -374,14 +374,25 @@ ColumnLayout {
                     onClicked: passwordContainer.forceActiveFocus()
                 }
 
-                // Fork: eye button; the characters below morph between dots and letters
+                // Fork: show the typed password as text (eye button on the right)
+                StyledText {
+                    anchors.left: parent.left
+                    anchors.right: revealBtn.left
+                    anchors.leftMargin: Tokens.padding.large
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: passwordContainer.showPassword
+                    text: passwordContainer.passwordBuffer
+                    font: Tokens.font.mono.medium
+                    horizontalAlignment: Text.AlignHCenter
+                    elide: Text.ElideLeft
+                }
+
                 MaterialIcon {
                     id: revealBtn
 
                     anchors.right: parent.right
                     anchors.rightMargin: Tokens.padding.medium
                     anchors.verticalCenter: parent.verticalCenter
-                    animate: true
                     text: passwordContainer.showPassword ? "visibility_off" : "visibility"
                     color: Colours.palette.m3onSurfaceVariant
 
@@ -417,40 +428,29 @@ ColumnLayout {
                 ListView {
                     id: charList
 
-                    // Fork: each character morphs between a dot and its letter (eye toggle), rippling left to right
-                    readonly property real dotSize: Tokens.font.body.medium.pointSize
-                    readonly property real glyphWidth: glyphMetrics.advanceWidth("M")
+                    visible: !passwordContainer.showPassword
+                    readonly property int fullWidth: count * (implicitHeight + spacing) - spacing
 
                     anchors.centerIn: parent
-                    implicitWidth: Math.min(contentWidth, parent.width - (revealBtn.implicitWidth + Tokens.padding.medium * 2) * 2)
-                    implicitHeight: Math.max(dotSize, glyphMetrics.height)
-                    clip: true
+                    implicitWidth: fullWidth
+                    implicitHeight: Tokens.font.body.medium.pointSize
 
                     orientation: Qt.Horizontal
                     spacing: Tokens.spacing.extraSmall
                     interactive: false
-                    onCountChanged: positionViewAtEnd() // Long passwords: keep the newest characters in view
-
-                    FontMetrics {
-                        id: glyphMetrics
-
-                        font: Tokens.font.mono.medium
-                    }
 
                     model: ScriptModel {
                         values: passwordContainer.passwordBuffer.split("")
                     }
 
-                    delegate: Item {
+                    delegate: StyledRect {
                         id: ch
 
-                        required property string modelData
-                        required property int index
-                        // 0 = dot, 1 = letter
-                        property real reveal: passwordContainer.showPassword ? 1 : 0
-
-                        implicitWidth: charList.dotSize + (charList.glyphWidth - charList.dotSize) * reveal
+                        implicitWidth: implicitHeight
                         implicitHeight: charList.implicitHeight
+
+                        color: Colours.palette.m3onSurface
+                        radius: Tokens.rounding.medium / 2
 
                         opacity: 0
                         scale: 0
@@ -459,24 +459,6 @@ ColumnLayout {
                             scale = 1;
                         }
                         ListView.onRemove: removeAnim.start()
-
-                        StyledRect {
-                            anchors.centerIn: parent
-                            implicitWidth: charList.dotSize
-                            implicitHeight: charList.dotSize
-                            color: Colours.palette.m3onSurface
-                            radius: Tokens.rounding.medium / 2
-                            opacity: 1 - ch.reveal
-                            scale: 1 - ch.reveal * 0.6
-                        }
-
-                        StyledText {
-                            anchors.centerIn: parent
-                            text: ch.modelData
-                            font: Tokens.font.mono.medium
-                            opacity: ch.reveal
-                            scale: 0.4 + ch.reveal * 0.6
-                        }
 
                         SequentialAnimation {
                             id: removeAnim
@@ -503,17 +485,6 @@ ColumnLayout {
                                 target: ch
                                 property: "ListView.delayRemove"
                                 value: false
-                            }
-                        }
-
-                        Behavior on reveal {
-                            SequentialAnimation {
-                                PauseAnimation {
-                                    duration: Math.min(ch.index, 20) * 15
-                                }
-                                Anim {
-                                    type: Anim.DefaultSpatial
-                                }
                             }
                         }
 
